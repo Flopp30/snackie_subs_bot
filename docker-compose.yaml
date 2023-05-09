@@ -1,0 +1,25 @@
+version: '3.7'
+
+services:
+    postgres_db:
+        image: postgres:14.5-alpine
+        restart: on-failure
+        env_file:
+            - .env
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+    bot:
+        build: .
+        command: sh -c "make migrate && python3 -m bot"
+        env_file:
+            - ./.env
+        depends_on:
+            - postgres_db
+        volumes:
+            - .:/bot
+        restart: always
+
+volumes:
+    postgres_data:
