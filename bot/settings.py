@@ -29,6 +29,9 @@ load_dotenv(BASE_DIR / ".env")
 TG_BOT_KEY = os.getenv("TG_BOT_KEY", "")
 YOOKASSA_KEY = os.getenv("YOOKASSA_KEY", "")
 
+# Bot admin
+OWNED_CHANNELS = ["5794998235", "5885196609"]
+
 # DB
 DB_DRIVER = os.getenv("POSTGRES_DRIVER", "postgresql+asyncpg")
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")

@@ -36,8 +36,8 @@ class User(
     payment_id = Column(Integer, ForeignKey('payments.id'))
     payment = relationship('Payment', uselist=False, back_populates="user")
 
-    def is_subscribed(self):
-        return self.unsubscribe_date is not None and self.unsubscribe_date > datetime.utcnow()
+    def is_need_to_kick(self):
+        return self.is_active and self.unsubscribe_date is not None and self.unsubscribe_date < datetime.now()
 
     def __str__(self):
         return f"<User:{self.id} {self.username}>"
