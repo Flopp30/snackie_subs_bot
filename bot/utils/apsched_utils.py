@@ -146,7 +146,7 @@ async def notification_one_day_after_unsuccessful_payment(bot, user_id, session,
         apscheduler.add_job(
             notification_five_days_after_unsuccessful_payment,
             trigger="date",
-            run_date=datetime.datetime.now() + datetime.timedelta(days=2) + datetime.timedelta(hours=4),
+            run_date=datetime.datetime.now() + datetime.timedelta(days=2) + datetime.timedelta(hours=3),
             kwargs={
                 "bot": bot,
                 "user_id": user_id,

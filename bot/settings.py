@@ -15,7 +15,7 @@ logger: Logger = logging.getLogger()
 file_handler = logging.FileHandler('log.log')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
