@@ -2,7 +2,7 @@
 Main
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
@@ -17,7 +17,7 @@ from bot.db import (
 from bot.handlers import register_user_commands, BOT_COMMANDS_INFO
 from bot.middleware.apscheduler import SchedulerMiddleware
 from bot.middleware.throttling import ThrottlingMiddleware
-from bot.settings import TG_BOT_KEY, POSTGRES_URL, logger, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
+from bot.settings import TG_BOT_KEY, POSTGRES_URL, logger, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, REDIS_HOST
 from bot.utils import apsched
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -28,7 +28,7 @@ async def async_main() -> None:
     Configuration.secret_key = YOOKASSA_SECRET_KEY
     # init dispatcher and bot
     bot = Bot(token=TG_BOT_KEY)
-    redis = Redis()
+    redis = Redis(host=REDIS_HOST)
     storage = RedisStorage(redis)
     dp = Dispatcher(storage=storage)
     # handlers
