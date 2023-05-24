@@ -81,7 +81,7 @@ async def payment_process(
         apscheduler.add_job(
             notification_one_day_after_unsuccessful_payment,
             trigger="date",
-            run_date=datetime.datetime.now() + datetime.timedelta(days=1),
+            run_date=datetime.datetime.now() + datetime.timedelta(days=1) + datetime.timedelta(hours=3),
             kwargs={
                 "bot": bot,
                 "user_id": user_id,
