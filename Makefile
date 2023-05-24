@@ -1,3 +1,6 @@
+init:
+	alembic init -t async bot/db/migration
+
 generate:
 	alembic revision --m="${NAME}" --autogenerate
 

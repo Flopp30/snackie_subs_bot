@@ -10,3 +10,7 @@ class StartStates(CallbackData, prefix="start"):
 
 class PaymentTypeStates(CallbackData, prefix="payment"):
     sub_period: int  # 1, 3, 12
+
+
+class UnsubStates(CallbackData, prefix="unsub"):
+    answer: str  # Yes / No

@@ -54,9 +54,9 @@ async def get_object(
     """
 
     async with session() as session:
-        db_response = (await session.execute(select(object_).where(object_.id == id_))).scalars()
+        db_response = tuple((await session.execute(select(object_).where(object_.id == id_))).scalars())
         if db_response:
-            return tuple(db_response)[0]
+            return db_response[0]
         return None
 
 

@@ -1,11 +1,20 @@
 version: '3.7'
 
 services:
+    redis:
+        image: redis:alpine
+        command:
+          - redis-server
+        env_file:
+          - ./.env
+        restart: on-failure
+        ports:
+          - "6378:6378"
     postgres_db:
         image: postgres:14.5-alpine
         restart: on-failure
         env_file:
-            - .env
+            - ./.env
         volumes:
             - postgres_data:/var/lib/postgresql/data
         ports:
@@ -17,6 +26,7 @@ services:
             - ./.env
         depends_on:
             - postgres_db
+            - redis
         volumes:
             - .:/bot
         restart: always
