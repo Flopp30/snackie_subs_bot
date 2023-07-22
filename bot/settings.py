@@ -4,24 +4,24 @@ Config file
 import logging
 import os
 from logging import Logger
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy.engine.url import URL
 
-# logging
 logger: Logger = logging.getLogger()
 
-file_handler = logging.FileHandler('log.log')
+logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-logger.setLevel(logging.DEBUG)
+file_handler = RotatingFileHandler('log.log', maxBytes=2097152, backupCount=1000)
 file_handler.setFormatter(formatter)
+
 logger.addHandler(file_handler)
 
 console_handler = logging.StreamHandler()
-console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(console_formatter)
+console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 # Dirs

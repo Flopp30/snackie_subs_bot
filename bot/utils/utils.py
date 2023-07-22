@@ -4,27 +4,25 @@ from datetime import datetime
 
 from aiogram.fsm.context import FSMContext
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from yookassa import Payment as Yoo_Payment
 
+from bot.db.crud import sub_crud
 from bot.db.models import Subscription, User
 from bot.settings import TG_BOT_URL
 from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL
 
 
-async def get_tariffs_text(session_maker: sessionmaker, state: FSMContext) -> str:
-    async with session_maker() as session:
-        async with session.begin():
-            subscriptions = (await session.execute(select(Subscription))).scalars()
+async def get_tariffs_text(session: AsyncSession, state: FSMContext) -> str:
+    subscriptions = await sub_crud.get_multi(session)
     text = TEXT_TARIFFS
     subscriptions_for_state = []
+    crossed_amount = ""
     for idx, sub in enumerate(subscriptions):
-        if idx == 0:
-            current_crossed_amount = ""
+        if idx == 1:
             crossed_amount = sub.payment_amount
-        else:
-            current_crossed_amount = crossed_amount * int(sub.sub_period)
+
+        current_crossed_amount = crossed_amount * int(sub.sub_period)
         text += TEXT_TARIFFS_DETAIL.format(
             humanize_name=sub.humanize_name,
             payment_period_name=sub.payment_name,
@@ -70,6 +68,7 @@ async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
 async def get_yoo_payment(sub: dict):
     idempotence_key = str(uuid.uuid4())
     payment = Yoo_Payment.create({
+        "save_payment_method": True,
         "amount": {
             "value": sub.get("payment_amount"),
             "currency": sub.get("payment_currency"),
@@ -87,13 +86,12 @@ async def get_yoo_payment(sub: dict):
         },
         "capture": True,
         "description": f"Оформление подписки по тарифу '{sub.get('humanize_name')}' на срок {sub.get('payment_name')}",
-        "save_payment_method": True,
     }, idempotence_key)
 
     return json.loads(payment.json())
 
 
-async def get_auto_payment(sub: Subscription, user: User):
+def get_auto_payment(sub: Subscription, user: User):
     idempotence_key = str(uuid.uuid4())
     payment = Yoo_Payment.create(
         {
@@ -106,5 +104,4 @@ async def get_auto_payment(sub: Subscription, user: User):
             "description": f"Продление подписки по тарифу '{sub.humanize_name}' на срок {sub.payment_name}",
         }, idempotence_key
     )
-
     return json.loads(payment.json())

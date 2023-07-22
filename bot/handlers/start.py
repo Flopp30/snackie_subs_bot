@@ -3,10 +3,9 @@ start handler
 """
 from aiogram import types
 from aiogram.enums import ParseMode
-from sqlalchemy import select
-from sqlalchemy.orm import sessionmaker, selectinload
+from sqlalchemy.orm import sessionmaker
 
-from bot.db import User
+from bot.db.crud import user_crud
 from bot.structure.keyboards import START_BOARD, AFTER_PAYMENT_REDIRECT_BOARD
 from bot.text_for_messages import TEXT_GREETING, TEXT_MAIN_FOR_IS_ACTIVE_USER
 from bot.utils import get_beautiful_sub_date
@@ -14,14 +13,12 @@ from bot.utils import get_beautiful_sub_date
 
 async def start(
         message: types.Message,
-        session_maker: sessionmaker,
+        get_async_session: sessionmaker,
 ) -> None:
-    async with session_maker() as session_:
-        user = tuple((await session_.execute(
-            select(User)
-            .where(User.id == message.from_user.id)
-            .options(selectinload(User.subscription))
-        )).scalars())[0]
+
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=message.from_user.id, session=session)
+
     if not user.is_active:
         await message.answer(
             TEXT_GREETING,

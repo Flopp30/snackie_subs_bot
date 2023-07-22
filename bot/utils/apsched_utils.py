@@ -4,15 +4,14 @@ import json
 
 import aiohttp
 from aiogram import types
+from apscheduler.triggers.date import DateTrigger
 from sqlalchemy.orm import sessionmaker
 from yookassa import Payment as YooPayment
 
 from bot.db import (
     User,
-    unsubscribe_user,
-    create_payment,
-    set_subscribe_after_payment, get_object
 )
+from bot.db.crud import user_crud, payment_crud
 from bot.settings import (
     OWNED_BOTS,
     HEADERS,
@@ -20,7 +19,7 @@ from bot.settings import (
     logger,
     INTERVAL_FOR_CHECKING_PAYMENT_SEC
 )
-from bot.structure.keyboards import AFTER_PAYMENT_REDIRECT_BOARD, PAYMENT_TYPE_BOARD, START_BOARD
+from bot.structure.keyboards import AFTER_PAYMENT_REDIRECT_BOARD, get_payment_types_board, START_BOARD
 from bot.text_for_messages import (
     TEXT_UNBAN_ERROR_USER,
     TEXT_UNBAN_ERROR_ADMIN,
@@ -32,42 +31,6 @@ from bot.text_for_messages import (
     TEXT_NOTIFICATION_FIVE_DAYS_AFTER_UNSUCCESSFUL_PAYMENT,
 )
 from bot.utils.utils import get_auto_payment
-
-
-async def auto_payment_process(session: sessionmaker, user: User, bot):
-    if user.verified_payment_id and user.is_accepted_for_auto_payment:
-        payment = await get_auto_payment(user.subscription, user)
-        payment_id = payment.get("id", None)
-        if await check_auto_payment(payment_id):
-            await set_subscribe_after_payment(
-                verified_payment_id=payment_id,
-                subscription=user.subscription,
-                user=user,
-                session=session,
-                first_time=False,
-            )
-            await bot.send_message(
-                user.id,
-                text=TEXT_SUCCESSFUL_AUTO_PAYMENT.format(
-                    payment_name=user.subscription.payment_name,
-                    unsubscribe_date=user.unsubscribe_date.strftime('%d.%m.%Y')
-                )
-            )
-            await create_payment(
-                user_id=user.id,
-                status=payment.get('status'),
-                payment_amount=float(payment.get("amount", dict()).get("value")),
-                verified_payment_id=payment.get("id"),
-                session=session,
-            )
-        else:
-            await unsubscribe_user(user=user, session=session)
-            await ban_user_in_owned_bots(user=user, bot=bot)
-            await bot.send_message(
-                user.id,
-                text=TEXT_UNSUCCESSFUL_AUTO_PAYMENT,
-                reply_markup=PAYMENT_TYPE_BOARD
-            )
 
 
 async def ban_user_in_owned_bots(user: User, bot):
@@ -130,13 +93,14 @@ async def check_auto_payment(payment_id):
         payment = json.loads((YooPayment.find_one(payment_id)).json())
         await asyncio.sleep(INTERVAL_FOR_CHECKING_PAYMENT_SEC)
     if payment['status'] == 'succeeded':
-        return True
+        return payment
     else:
         return False
 
 
-async def notification_one_day_after_unsuccessful_payment(bot, user_id, session, apscheduler):
-    user = await get_object(User, id_=user_id, session=session)
+async def notification_one_day_after_unsuccessful_payment(bot, user_id, get_async_session, apscheduler):
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=user_id, session=session)
     if not user.is_active:
         await bot.send_message(
             user_id,
@@ -145,18 +109,18 @@ async def notification_one_day_after_unsuccessful_payment(bot, user_id, session,
         )
         apscheduler.add_job(
             notification_five_days_after_unsuccessful_payment,
-            trigger="date",
-            run_date=datetime.datetime.now() + datetime.timedelta(days=2),
+            trigger=DateTrigger(run_date=datetime.datetime.now() + datetime.timedelta(days=4)),
             kwargs={
                 "bot": bot,
                 "user_id": user_id,
-                "session": session,
+                "get_async_session": get_async_session,
             }
         )
 
 
-async def notification_five_days_after_unsuccessful_payment(bot, user_id, session):
-    user = await get_object(User, id_=user_id, session=session)
+async def notification_five_days_after_unsuccessful_payment(bot, user_id, get_async_session):
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=user_id, session=session)
     if not user.is_active:
         await bot.send_message(
             user_id,

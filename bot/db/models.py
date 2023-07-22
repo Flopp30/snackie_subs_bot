@@ -36,6 +36,8 @@ class Subscription(BaseModel):
     payment_currency = Column(VARCHAR(5), default="RUB", nullable=False)
 
     sub_period = Column(Integer, nullable=False)
+    sub_period_type = Column(VARCHAR(32), default='month')
+    is_trial = Column(Boolean, default=False)
 
     def __str__(self):
         return f"{self.id}:{self.payment_name}:{self.payment_currency}"
@@ -48,6 +50,8 @@ class Subscription(BaseModel):
             "payment_amount": self.payment_amount,
             "payment_currency": self.payment_currency,
             "sub_period": self.sub_period,
+            "sub_period_type": self.sub_period_type,
+            "is_trial": self.is_trial,
         }
 
 
@@ -71,7 +75,7 @@ class User(CustomBaseModel):
     payments: Mapped[List["Payment"]] = relationship(back_populates="user")
 
     def is_subscribe_ended(self):
-        return self.is_active and self.unsubscribe_date is not None and self.unsubscribe_date <= datetime.now()
+        return self.is_active and self.unsubscribe_date <= datetime.now()
 
     def __str__(self):
         return f"<User:{self.id} {self.username}>"
@@ -133,8 +137,10 @@ async def set_subscribe_after_payment(
 
             if first_time:
                 user.first_sub_date = datetime.now()
-
-            user.unsubscribe_date = datetime.now() + relativedelta(months=subscription.sub_period)
+            if subscription.sub_period_type == 'month':
+                user.unsubscribe_date = datetime.now() + relativedelta(months=subscription.sub_period)
+            elif subscription.sub_period_type == 'day':
+                user.unsubscribe_date = datetime.now() + relativedelta(days=subscription.sub_period)
             user.is_active = True
             user.subscription = subscription
             user.is_accepted_for_auto_payment = True

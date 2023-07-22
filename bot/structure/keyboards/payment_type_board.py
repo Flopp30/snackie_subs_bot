@@ -1,17 +1,19 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from bot.db.crud import sub_crud
 from bot.structure import PaymentTypeStates
 
-builder = InlineKeyboardBuilder()
-builder.button(
-    text="1 месяц", callback_data=PaymentTypeStates(sub_period=1)
-)
-builder.button(
-    text="3 месяца", callback_data=PaymentTypeStates(sub_period=3)
-)
-builder.button(
-    text="1 год", callback_data=PaymentTypeStates(sub_period=12)
-)
-builder.adjust(1)
 
-PAYMENT_TYPE_BOARD = builder.as_markup()
+async def get_payment_types_board(session: AsyncSession):
+    subs = await sub_crud.get_multi(session)
+    builder = InlineKeyboardBuilder()
+
+    for sub in subs:
+        if not isinstance(sub, dict):
+            sub = sub.to_dict()
+        builder.button(
+            text=sub.get("payment_name"), callback_data=PaymentTypeStates(sub_period=sub.get("sub_period"))
+        )
+    builder.adjust(1)
+
+    return builder.as_markup()

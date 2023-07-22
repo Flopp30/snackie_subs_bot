@@ -5,7 +5,6 @@ from bot.db.base import (
     is_object_exist,
     CustomBaseModel,
 )
-from bot.db.engine import get_session_maker, create_async_engine
 from bot.db.models import (
     User,
     create_user,
@@ -17,8 +16,6 @@ from bot.db.models import (
 )
 
 __all__ = [
-    "get_session_maker",
-    "create_async_engine",
     "BaseModel",
     "CustomBaseModel",
     "object_has_attr",

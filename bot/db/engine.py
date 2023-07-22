@@ -1,6 +1,8 @@
 """
 Async engine for SqlAlchemy
 """
+from contextlib import asynccontextmanager
+
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -8,6 +10,9 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine as _create_async_engine
 )
+from sqlalchemy.orm import sessionmaker
+
+from bot.settings import POSTGRES_URL
 
 
 def create_async_engine(url: URL | str) -> AsyncEngine:
@@ -19,10 +24,14 @@ def create_async_engine(url: URL | str) -> AsyncEngine:
     return _create_async_engine(url=url, echo=True, pool_pre_ping=True)
 
 
-async def get_session_maker(engine: AsyncEngine) -> async_sessionmaker:
-    """
-    return async session maker
-    :param engine:
-    :return:
-    """
-    return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+engine = create_async_engine(POSTGRES_URL)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession)
+
+
+@asynccontextmanager
+async def get_async_session() -> async_sessionmaker:
+    async with AsyncSessionLocal() as async_session:
+        try:
+            yield async_session
+        finally:
+            await async_session.close()

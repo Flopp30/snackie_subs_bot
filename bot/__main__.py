@@ -2,24 +2,21 @@
 Main
 """
 import asyncio
-from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from redis.asyncio.client import Redis
 from yookassa import Configuration
 
-from bot.db import (
-    create_async_engine,
-    get_session_maker,
-)
+from bot.db.engine import get_async_session
 from bot.handlers import register_user_commands, BOT_COMMANDS_INFO
 from bot.middleware.apscheduler import SchedulerMiddleware
 from bot.middleware.throttling import ThrottlingMiddleware
-from bot.settings import TG_BOT_KEY, POSTGRES_URL, logger, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
+from bot.settings import TG_BOT_KEY, logger, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
 from bot.utils import apsched
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 async def async_main() -> None:
@@ -37,20 +34,14 @@ async def async_main() -> None:
         commands_for_bot.append(BotCommand(command=cmd[0], description=cmd[1]))
     await bot.set_my_commands(commands_for_bot)
     register_user_commands(dp)
-    # db
-    async_engine = create_async_engine(POSTGRES_URL)
-    session_maker = await get_session_maker(async_engine)
 
     # periodic tasks
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     scheduler.add_job(
         apsched.check_auto_payment_daily,
-        trigger="cron",
-        start_date=datetime.now(),
-        hour=datetime.now().hour,
-        minute=datetime.now().minute,
+        trigger=IntervalTrigger(seconds=5),
         kwargs={
-            "session": session_maker,
+            "get_async_session": get_async_session,
             "bot": bot,
         }
     )
@@ -59,7 +50,7 @@ async def async_main() -> None:
 
     dp.update.middleware.register(SchedulerMiddleware(scheduler))
     dp.message.middleware.register(ThrottlingMiddleware(storage))
-    await dp.start_polling(bot, session_maker=session_maker)
+    await dp.start_polling(bot, get_async_session=get_async_session)
 
 
 def main():

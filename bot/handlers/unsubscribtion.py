@@ -1,7 +1,6 @@
 from aiogram import types
 from sqlalchemy.orm import sessionmaker
-
-from bot.db import get_object, User
+from bot.db.crud import user_crud
 from bot.settings import ADMIN_TG_ID
 from bot.structure import UnsubStates
 from bot.structure.keyboards import UNSUB_BOARD
@@ -11,9 +10,10 @@ from bot.utils import get_beautiful_sub_date
 
 async def unsubscription_start(
         message: types.Message,
-        session_maker: sessionmaker,
+        get_async_session: sessionmaker,
 ) -> None:
-    user = await get_object(User, id_=message.from_user.id, session=session_maker)
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=message.from_user.id, session=session)
 
     if user.is_accepted_for_auto_payment:
         sub_date_text = await get_beautiful_sub_date(first_sub_date=user.first_sub_date)
@@ -28,7 +28,7 @@ async def unsubscription_start(
     else:
         if user.unsubscribe_date is not None:
             await message.answer(
-                text=f"Текущая подписка завершиться {user.unsubscribe_date.strftime('%d.%m.%Y')} и "
+                text=f"Текущая подписка завершится {user.unsubscribe_date.strftime('%d.%m.%Y')} и "
                      f"автоматически продлеваться не будет",
             )
         else:
@@ -39,18 +39,21 @@ async def unsubscription_start(
 
 async def unsub_process(
     callback_query: types.CallbackQuery,
-    session_maker: sessionmaker,
+    get_async_session: sessionmaker,
     callback_data: UnsubStates,
     bot,
 ):
-    user = await get_object(User, id_=callback_query.from_user.id, session=session_maker)
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=callback_query.from_user.id, session=session)
     if user:
         if callback_data.answer == "Yes":
-            async with session_maker() as session:
+            async with get_async_session() as session:
                 async with session.begin():
                     user.is_accepted_for_auto_payment = False
                     session.add(user)
-                    await session.flush()
+                    await session.commit()
+                    await session.refresh(user)
+
             await callback_query.message.answer(f"Подписка успешно завершена. "
                                                 f"Дата окончания: {user.unsubscribe_date.strftime('%d.%m.%Y')}")
         else:

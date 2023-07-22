@@ -5,11 +5,10 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.orm import sessionmaker
-
-from bot.db import get_object, User
+from bot.db.crud import user_crud
 from bot.handlers.start import start
 from bot.structure import PaymentTypeStates
-from bot.structure.keyboards import PAYMENT_TYPE_BOARD, get_payment_board
+from bot.structure.keyboards import get_payment_types_board, get_payment_board
 from bot.text_for_messages import TEXT_INVOICE
 from bot.utils import get_tariffs_text, get_yoo_payment
 from bot.utils.apsched import payment_process
@@ -17,26 +16,28 @@ from bot.utils.apsched import payment_process
 
 async def subscription_start(
         callback_query: types.CallbackQuery,
-        session_maker: sessionmaker,
+        get_async_session: sessionmaker,
         state: FSMContext,
 ) -> None:
-    user = await get_object(User, id_=callback_query.from_user.id, session=session_maker)
-    if not user.is_active:
-        text = await get_tariffs_text(session_maker=session_maker, state=state)
-        await callback_query.message.answer(
-            text=text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=PAYMENT_TYPE_BOARD,
-        )
-    else:
-        return await start(message=callback_query.message, session_maker=session_maker)
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=callback_query.from_user.id, session=session)
+
+        if not user.is_active:
+            text = await get_tariffs_text(session=session, state=state)
+            await callback_query.message.answer(
+                text=text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=(await get_payment_types_board(session=session)),
+            )
+        else:
+            return await start(message=callback_query.message, get_async_session=get_async_session)
 
 
 async def send_subscribe_invoice(
         callback_query: types.CallbackQuery,
         callback_data: PaymentTypeStates,
         state: FSMContext,
-        session_maker: sessionmaker,
+        get_async_session: sessionmaker,
         apscheduler: AsyncIOScheduler,
         bot,
 ) -> None:
@@ -66,11 +67,11 @@ async def send_subscribe_invoice(
     apscheduler.add_job(
         payment_process,
         trigger="date",
-        run_date=datetime.datetime.now() - datetime.timedelta(hours=1),
+        run_date=datetime.datetime.now(),
         kwargs={
             "payment": yoo_payment,
             "message": callback_query.message,
-            "session": session_maker,
+            "get_async_session": get_async_session,
             "user_id": callback_query.from_user.id,
             "invoice_for_delete": invoice,
             "bot": bot,
