@@ -6,14 +6,14 @@ from aiogram.filters import CommandStart, Command
 
 from bot.handlers.help import help_command, help_func
 from bot.handlers.start import start
+from bot.handlers.statistic import statistic
 from bot.handlers.subscription import subscription_start, send_subscribe_invoice
 from bot.handlers.unsubscribtion import unsubscription_start, unsub_process
 from bot.middleware import RegisterCheck
-from bot.structure import StartStates, PaymentTypeStates, UnsubStates
+from bot.structure import StartStates, PaymentTypeStates, UnsubStates, StatisticCallBack
 from bot.text_for_messages import BOT_COMMANDS_INFO, TEXT_UNKNOWN_MESSAGE
 
 __all__ = [
-    "BOT_COMMANDS_INFO",
     "register_user_commands",
 ]
 
@@ -30,6 +30,9 @@ def register_user_commands(router: Router) -> None:
     router.callback_query.middleware(RegisterCheck())
     # start
     router.message.register(start, CommandStart())
+
+    # statistic
+    router.callback_query.register(statistic, StatisticCallBack.filter())
 
     # help
     router.message.register(help_command, Command(commands=["help"]))

@@ -38,26 +38,21 @@ async def unsubscription_start(
 
 
 async def unsub_process(
-    callback_query: types.CallbackQuery,
-    get_async_session: sessionmaker,
-    callback_data: UnsubStates,
-    bot,
+        callback_query: types.CallbackQuery,
+        get_async_session: sessionmaker,
+        callback_data: UnsubStates,
+        bot,
 ):
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=callback_query.from_user.id, session=session)
-    if user:
-        if callback_data.answer == "Yes":
-            async with get_async_session() as session:
-                async with session.begin():
-                    user.is_accepted_for_auto_payment = False
-                    session.add(user)
-                    await session.commit()
-                    await session.refresh(user)
-
-            await callback_query.message.answer(f"Подписка успешно завершена. "
-                                                f"Дата окончания: {user.unsubscribe_date.strftime('%d.%m.%Y')}")
+        if user:
+            if callback_data.answer == "Yes":
+                user.is_accepted_for_auto_payment = False
+                await user_crud.update(user, {"is_accepted_for_auto_payment": False}, session)
+                await callback_query.message.answer(f"Подписка успешно завершена. "
+                                                    f"Дата окончания: {user.unsubscribe_date.strftime('%d.%m.%Y')}")
+            else:
+                await callback_query.message.answer("Рада, что ты решила остаться!")
         else:
-            await callback_query.message.answer("Рада, что ты решила остаться!")
-    else:
-        await callback_query.message.answer(TEXT_UNSUB_ERROR_USER.format(user_id=callback_query.from_user.id))
-        await bot.send_message(ADMIN_TG_ID, TEXT_UNSUB_ERROR_ADMIN.format(user_id=callback_query.from_user.id))
+            await callback_query.message.answer(TEXT_UNSUB_ERROR_USER.format(user_id=callback_query.from_user.id))
+            await bot.send_message(ADMIN_TG_ID, TEXT_UNSUB_ERROR_ADMIN.format(user_id=callback_query.from_user.id))

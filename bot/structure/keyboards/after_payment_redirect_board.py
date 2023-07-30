@@ -12,7 +12,10 @@ builder.button(
     text="Тренировки с гантелями дом/зал", url="https://t.me/Roooookie_bot"
 )
 builder.button(
-    text="Домашние тренировки в формате 'повторяй за мной'", url="https://t.me/+g8xFELc9K6RkYTEy"
+    text="Тренировки с резинками", url="https://t.me/snackiebird_bandsBot"
+)
+builder.button(
+    text="Записи зарядок - пятиминуток", url="https://t.me/+g8xFELc9K6RkYTEy"
 )
 builder.button(
     text="Чат клуба", url="https://t.me/+skGO0YDZYpVkMDli"

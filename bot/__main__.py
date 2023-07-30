@@ -36,19 +36,20 @@ async def async_main() -> None:
     register_user_commands(dp)
 
     # periodic tasks
-    scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-    scheduler.add_job(
+    apscheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+    apscheduler.add_job(
         apsched.check_auto_payment_daily,
-        trigger=IntervalTrigger(seconds=5),
+        trigger=IntervalTrigger(days=1),
         kwargs={
             "get_async_session": get_async_session,
             "bot": bot,
+            "apscheduler": apscheduler
         }
     )
 
-    scheduler.start()
+    apscheduler.start()
 
-    dp.update.middleware.register(SchedulerMiddleware(scheduler))
+    dp.update.middleware.register(SchedulerMiddleware(apscheduler))
     dp.message.middleware.register(ThrottlingMiddleware(storage))
     await dp.start_polling(bot, get_async_session=get_async_session)
 

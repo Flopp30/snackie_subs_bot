@@ -1,25 +1,27 @@
+import csv
 import json
 import uuid
 from datetime import datetime
+from io import StringIO, BytesIO
 
 from aiogram.fsm.context import FSMContext
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from yookassa import Payment as Yoo_Payment
 
-from bot.db.crud import sub_crud
+from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
 from bot.settings import TG_BOT_URL
 from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL
 
 
-async def get_tariffs_text(session: AsyncSession, state: FSMContext) -> str:
-    subscriptions = await sub_crud.get_multi(session)
+async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials: bool = True) -> str:
+    subscriptions = await sub_crud.get_multi(session, with_trials=with_trials)
     text = TEXT_TARIFFS
     subscriptions_for_state = []
     crossed_amount = ""
     for idx, sub in enumerate(subscriptions):
-        if idx == 1:
+        if idx == 2:
             crossed_amount = sub.payment_amount
 
         current_crossed_amount = crossed_amount * int(sub.sub_period)
@@ -37,11 +39,11 @@ async def get_tariffs_text(session: AsyncSession, state: FSMContext) -> str:
 async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
     current_date = datetime.now()
     date_diff = relativedelta(current_date, first_sub_date)
-
     time_units = {
         "years": ("год", "года", "лет"),
         "months": ("месяц", "месяца", "месяцев"),
         "days": ("день", "дня", "дней"),
+        "hours": ("час", "часа", "часов"),
         "minutes": ("минуту", "минуты", "минут"),
     }
 
@@ -61,7 +63,7 @@ async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
     res = res.rstrip(", ")
     if not res:
         return res
-    res = "Ты с нами уже: " + res
+    res = "Ты с нами уже: " + res + " 🏆"
     return res
 
 

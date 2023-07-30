@@ -5,6 +5,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.orm import sessionmaker
+
 from bot.db.crud import user_crud
 from bot.handlers.start import start
 from bot.structure import PaymentTypeStates
@@ -21,13 +22,15 @@ async def subscription_start(
 ) -> None:
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=callback_query.from_user.id, session=session)
-
         if not user.is_active:
-            text = await get_tariffs_text(session=session, state=state)
+            text = await get_tariffs_text(session=session, state=state, with_trials=not bool(user.first_sub_date))
             await callback_query.message.answer(
                 text=text,
                 parse_mode=ParseMode.HTML,
-                reply_markup=(await get_payment_types_board(session=session)),
+                reply_markup=(await get_payment_types_board(
+                    session=session,
+                    with_trials=not bool(user.first_sub_date)
+                )),
             )
         else:
             return await start(message=callback_query.message, get_async_session=get_async_session)

@@ -76,6 +76,8 @@ async def send_confirm_message(sub_period, checked_payment, message):
     match sub_period:
         case 1:
             pass
+        case 7:
+            sub_period_text = "7 дней"
         case 3:
             sub_period_text = "3 месяца"
         case 12:

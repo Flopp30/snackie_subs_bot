@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import Sequence
 
+from sqlalchemy import select, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db import Payment, User, BaseModel
@@ -21,6 +23,9 @@ class CRUDPayment(CRUDBase):
             user_id: int = None,
             user: User = None,
     ) -> BaseModel:
+        """
+        Creates a payment, sets the verified payment id to the user, if it was transferred
+        """
         if user_id and user is None:
             user = await user_crud.get_by_id(user_pk=user_id, session=session)
         payment = self.model(
@@ -37,6 +42,22 @@ class CRUDPayment(CRUDBase):
         await session.refresh(user)
         await session.refresh(payment)
         return payment
+
+    async def get_this_month_multi(
+            self,
+            session: AsyncSession,
+    ) -> Sequence[BaseModel]:
+        """
+        Returns a list of payments for this month
+        """
+        date_now = datetime.now()
+        current_month = date_now.month
+        db_obj = await session.execute(
+            select(self.model).where(
+                (extract('month', self.model.date) == current_month)
+            )
+        )
+        return db_obj.scalars().all()
 
 
 payment_crud = CRUDPayment(Payment)

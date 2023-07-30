@@ -2,7 +2,8 @@ import asyncio
 import datetime
 import json
 
-from aiogram import types
+from aiogram import types, Bot
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy.orm import sessionmaker
 from yookassa import Payment as YooPayment
@@ -15,12 +16,19 @@ from bot.settings import (
 from bot.structure.keyboards import get_payment_types_board
 from bot.text_for_messages import (
     TEXT_OUT_OF_TIME_FOR_PAYMENT,
-    TEXT_PAYMENT_ERROR, TEXT_SUCCESSFUL_AUTO_PAYMENT, TEXT_UNSUCCESSFUL_AUTO_PAYMENT
+    TEXT_PAYMENT_ERROR,
+    TEXT_SUCCESSFUL_AUTO_PAYMENT,
+    TEXT_UNSUCCESSFUL_AUTO_PAYMENT,
+    TEXT_AFTER_TRIAL,
+    TEXT_PAYMENT_HAS_NOT_BEEN_RECEIVED,
+    TEXT_UNSUBSCRIPTION_SUB_END
 )
 from bot.utils.apsched_utils import (
     unban_user_in_owned_bots,
     send_confirm_message,
-    notification_one_day_after_unsuccessful_payment, check_auto_payment, ban_user_in_owned_bots,
+    notification_one_day_after_unsuccessful_payment,
+    check_auto_payment,
+    ban_user_in_owned_bots,
 )
 from bot.utils.utils import get_auto_payment
 
@@ -47,6 +55,7 @@ async def payment_process(
     payment_amount = float(checked_payment.get("amount", dict()).get("value"))
 
     async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_pk=user_id, session=session)
         if checked_payment.get('status') == 'succeeded':
             sub_id = int(checked_payment.get("metadata", dict()).get("sub_id", 0))
             sub_period = int(checked_payment.get("metadata", dict()).get("sub_period", 0))
@@ -56,14 +65,13 @@ async def payment_process(
                 payment_amount=payment_amount,
                 verified_payment_id=checked_payment.get("id"),
                 session=session,
-                user_id=user_id,
+                user=user,
             )
-            await unban_user_in_owned_bots(message=message, user_id=user_id, bot=bot)
+            await unban_user_in_owned_bots(message=message, user_id=user.id, bot=bot)
             await user_crud.set_subscribe(
-                user_id=user_id,
+                user=user,
                 sub_id=sub_id,
                 session=session,
-                first_time=True,
             )
         else:
             apscheduler.add_job(
@@ -85,19 +93,24 @@ async def payment_process(
                     payment_amount=payment_amount,
                     verified_payment_id=checked_payment.get("payment_method", {}).get("id"),
                     session=session,
-                    user_id=user_id,
+                    user=user,
                 )
 
                 await message.answer(
                     TEXT_PAYMENT_ERROR,
-                    reply_markup=(await get_payment_types_board(session=session))
+                    reply_markup=(await get_payment_types_board(
+                        session=session,
+                        with_trials=not bool(user.first_sub_date)
+                    ))
                 )
 
 
-async def check_auto_payment_daily(get_async_session: sessionmaker, bot):
+async def check_auto_payment_daily(get_async_session: sessionmaker, bot: Bot, apscheduler: AsyncIOScheduler):
     async with get_async_session() as session:
-        users = await user_crud.get_expired_sub_user(session=session)
-        for user in users:
+        users = await user_crud.get_expired_sub_users(session=session)
+    for user in users:
+        async with get_async_session() as session:
+            user = await user_crud.get_by_id(user.id, session)
             if user.verified_payment_id and user.is_accepted_for_auto_payment:
                 payment = get_auto_payment(user.subscription, user)
                 payment_id = payment.get("id", None)
@@ -110,7 +123,7 @@ async def check_auto_payment_daily(get_async_session: sessionmaker, bot):
                         )
                     )
                     await payment_crud.create_payment(
-                        user_id=user.id,
+                        user=user,
                         status=payment.get('status'),
                         payment_amount=float(checked_payment.get("amount", dict()).get("value")),
                         session=session,
@@ -119,18 +132,52 @@ async def check_auto_payment_daily(get_async_session: sessionmaker, bot):
                         subscription=user.subscription,
                         user=user,
                         session=session,
-                        first_time=False,
                     )
             else:
+                if user.subscription.is_trial:
+                    message_for_deleting = await bot.send_message(
+                        user.id,
+                        text=TEXT_AFTER_TRIAL,
+                        reply_markup=(await get_payment_types_board(
+                            session=session, with_trials=False, with_amount=True
+                        ))
+                    )
+                    apscheduler.add_job(
+                        delete_message_with_payment_board_after_24_hours,
+                        trigger=DateTrigger(run_date=datetime.datetime.now() + datetime.timedelta(days=1)),
+                        kwargs={
+                            "message_id": message_for_deleting.message_id,
+                            "user_id": user.id,
+                            "get_async_session": get_async_session,
+                            "bot": bot,
+                        }
+                    )
+                else:
+                    await bot.send_message(
+                        user.id,
+
+                        text=TEXT_UNSUCCESSFUL_AUTO_PAYMENT
+                        if user.is_accepted_for_auto_payment else TEXT_UNSUBSCRIPTION_SUB_END,
+
+                        reply_markup=(await get_payment_types_board(
+                            session=session, with_trials=False, with_amount=True
+                        ))
+                    )
                 await user_crud.unsubscribe(
-                    user=user,
+                    db_obj=user,
                     session=session
                 )
                 await ban_user_in_owned_bots(user=user, bot=bot)
-                await bot.send_message(
-                    user.id,
-                    text=TEXT_UNSUCCESSFUL_AUTO_PAYMENT,
-                    reply_markup=(await get_payment_types_board(session=session))
-                )
 
-            await session.commit()
+
+async def delete_message_with_payment_board_after_24_hours(
+        message_id: int,
+        user_id: int,
+        get_async_session: sessionmaker,
+        bot: Bot
+):
+    async with get_async_session() as session:
+        user = await user_crud.get_by_id(user_id, session)
+    if not user.is_active:
+        await bot.delete_message(user_id, message_id)
+        await bot.send_message(user_id, text=TEXT_PAYMENT_HAS_NOT_BEEN_RECEIVED)

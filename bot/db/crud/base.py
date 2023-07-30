@@ -57,7 +57,7 @@ class CRUDBase:
 
     async def get_multi(
             self,
-            session: AsyncSession
+            session: AsyncSession,
     ) -> Sequence[BaseModel]:
         """
         Returns list of db_objects

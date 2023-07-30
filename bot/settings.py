@@ -48,6 +48,7 @@ POSTGRES_URL = URL.create(
 # TG
 TG_BOT_KEY = os.getenv("TG_BOT_KEY")
 ADMIN_TG_ID = os.getenv("ADMIN_TG_ID")
+SECOND_ADMIN_TG = os.getenv("SECOND_ADMIN_TG")
 TG_BOT_URL = os.getenv("TG_BOT_URL")
 
 # YOOKASSA
@@ -82,11 +83,15 @@ class OwnedBot:
 
 WORKOUT_BOT_API_KEY = os.getenv("WORKOUT_BOT_API_KEY")
 WORKOUT_BOT_CHAT_ID = int(os.getenv("WORKOUT_BOT_CHAT_ID"))
+
 ROOKIE_BOT_API_KEY = os.getenv("ROOKIE_BOT_API_KEY")
 ROOKIE_BOT_CHAT_ID = int(os.getenv("ROOKIE_BOT_CHAT_ID"))
 
 PRO_WORKOUT_BOT_API_KEY = os.getenv("PRO_WORKOUT_BOT_API_KEY")
 PRO_WORKOUT_BOT_CHAT_ID = int(os.getenv("PRO_WORKOUT_BOT_CHAT_ID"))
+
+BANDS_BOT_API_KEY = os.getenv("BANDS_BOT_API_KEY")
+BANDS_BOT_CHAT_ID = int(os.getenv("BANDS_BOT_CHAT_ID"))
 
 WORKOUT_BOT = OwnedBot(
     name="Workout bot",
@@ -106,10 +111,17 @@ PRO_WORKOUT_BOT = OwnedBot(
     tg_chat_id=PRO_WORKOUT_BOT_CHAT_ID
 )
 
+BANDS_BOT = OwnedBot(
+    name="Bands bot",
+    api_token=BANDS_BOT_API_KEY,
+    tg_chat_id=BANDS_BOT_CHAT_ID,
+)
+
 OWNED_BOTS = [
     WORKOUT_BOT,
     ROOKIE_BOT,
     PRO_WORKOUT_BOT,
+    BANDS_BOT,
 ]
 
 # Request

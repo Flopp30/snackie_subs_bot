@@ -3,9 +3,8 @@ BaseModel sql alchemy
 """
 import datetime
 
-from sqlalchemy import select, Column, DATE, BigInteger, Boolean
+from sqlalchemy import Column, BigInteger, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 BaseModel = declarative_base()
 
@@ -14,89 +13,7 @@ class CustomBaseModel(BaseModel):
     __abstract__ = True
 
     id = Column(BigInteger, unique=True, nullable=False, primary_key=True)
-    created_at = Column(DATE, default=datetime.datetime.now())
-    updated_at = Column(DATE, onupdate=datetime.datetime.now())
+    created_at = Column(DateTime, default=datetime.datetime.now, name="created")
+    updated_at = Column(DateTime, onupdate=datetime.datetime.now, name="updated")
 
     is_deleted = Column(Boolean, default=False)
-
-
-async def object_has_attr(
-        object_: BaseModel,
-        attr_: str
-) -> bool:
-    """
-    checks if the object_ has an attr_
-    :param object_:
-    :param attr_:
-    :return:
-    """
-
-    return attr_ in object_.__table__.columns.keys()
-
-
-async def get_object_attrs(
-        object_: BaseModel,
-) -> tuple:
-    return object_.__table__.columns.keys()
-
-
-async def get_object(
-        object_: BaseModel,
-        id_: int,
-        session: sessionmaker
-) -> BaseModel | None:
-    """
-    Get object from db
-    :param object_:
-    :param id_:
-    :param session:
-    :return:
-    """
-
-    async with session() as session:
-        db_response = tuple((await session.execute(select(object_).where(object_.id == id_))).scalars())
-        if db_response:
-            return db_response[0]
-        return None
-
-
-async def is_object_exist(
-        object_: BaseModel,
-        id_: int,
-        session: sessionmaker
-) -> bool:
-    """
-    Checks if object exist
-    :param object_:
-    :param id_:
-    :param session:
-    :return:
-    """
-
-    async with session() as session:
-        db_response = (await session.execute(select(object_).where(object_.id == id_))).scalars().one_or_none()
-        return bool(db_response)
-
-
-async def update_object(
-        object_: BaseModel,
-        id_: int,
-        fields: dict[str: str | int],
-        session: sessionmaker
-) -> None:
-    """
-    Partial update user"s data
-    :param object_:
-    :param id_:
-    :param fields:
-    :param session:
-    :return:
-    """
-
-    async with session() as session_:
-        async with session_.begin():
-            db_object = await get_object(object_, id_, session)
-            for field_name, field_value in fields.items():
-                if await object_has_attr(object_, field_name):
-                    setattr(db_object, field_name, field_value)
-            await session_.merge(db_object)
