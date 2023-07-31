@@ -69,8 +69,6 @@ async def send_subscribe_invoice(
 
     apscheduler.add_job(
         payment_process,
-        trigger="date",
-        run_date=datetime.datetime.now(),
         kwargs={
             "payment": yoo_payment,
             "message": callback_query.message,
@@ -81,3 +79,4 @@ async def send_subscribe_invoice(
             "apscheduler": apscheduler,
         }
     )
+

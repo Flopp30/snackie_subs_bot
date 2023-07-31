@@ -76,7 +76,7 @@ async def payment_process(
         else:
             apscheduler.add_job(
                 notification_one_day_after_unsuccessful_payment,
-                trigger=DateTrigger(run_date=datetime.datetime.now() + datetime.timedelta(days=1)),
+                run_date=datetime.datetime.now() + datetime.timedelta(days=1, hours=3),
                 kwargs={
                     "bot": bot,
                     "user_id": user_id,
@@ -144,7 +144,9 @@ async def check_auto_payment_daily(get_async_session: sessionmaker, bot: Bot, ap
                     )
                     apscheduler.add_job(
                         delete_message_with_payment_board_after_24_hours,
-                        trigger=DateTrigger(run_date=datetime.datetime.now() + datetime.timedelta(days=1)),
+                        trigger=DateTrigger(
+                            run_date=datetime.datetime.now() + datetime.timedelta(days=1, hours=3) + datetime.timedelta(
+                                hours=3)),
                         kwargs={
                             "message_id": message_for_deleting.message_id,
                             "user_id": user.id,
