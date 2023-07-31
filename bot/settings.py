@@ -12,9 +12,8 @@ from sqlalchemy.engine.url import URL
 
 logger: Logger = logging.getLogger()
 
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 file_handler = RotatingFileHandler('log.log', maxBytes=2097152, backupCount=1000)
 file_handler.setFormatter(formatter)
 

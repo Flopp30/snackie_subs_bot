@@ -21,7 +21,7 @@ def create_async_engine(url: URL | str) -> AsyncEngine:
     :param url:
     :return:
     """
-    return _create_async_engine(url=url, echo=True, pool_pre_ping=True)
+    return _create_async_engine(url=url, echo=False, pool_pre_ping=True)
 
 
 engine = create_async_engine(POSTGRES_URL)
