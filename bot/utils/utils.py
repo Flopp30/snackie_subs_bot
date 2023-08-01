@@ -20,17 +20,19 @@ async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials
     text = TEXT_TARIFFS
     subscriptions_for_state = []
     crossed_amount = ""
-    for idx, sub in enumerate(subscriptions):
-        if idx == 2:
-            crossed_amount = sub.payment_amount
-
+    for sub in subscriptions:
         current_crossed_amount = crossed_amount * int(sub.sub_period)
+
         text += TEXT_TARIFFS_DETAIL.format(
             humanize_name=sub.humanize_name,
             payment_period_name=sub.payment_name,
             crossed_out_price=current_crossed_amount,
             payment_amount=sub.payment_amount,
             payment_currency=sub.payment_currency)
+
+        if crossed_amount == "" and not sub.is_trial:
+            crossed_amount = sub.payment_amount
+
         subscriptions_for_state.append(sub.to_dict())
     await state.update_data(subscriptions=subscriptions_for_state)
     return text
