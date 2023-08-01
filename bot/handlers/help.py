@@ -14,7 +14,7 @@ async def help_func(message: types.Message):
     :return:
     """
     return await message.answer(
-        TEXT_HELP
+        TEXT_HELP.format(user_id=message.from_user.id)
     )
 
 
