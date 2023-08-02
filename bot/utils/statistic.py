@@ -51,7 +51,7 @@ async def get_user_stat(session: AsyncSession) -> (str, bytes):
                 sub_month_count += 1 if user.subscription.payment_name == "1 месяц" else 0
                 sub_three_month_count += 1 if user.subscription.payment_name == "3 месяца" else 0
                 sub_year_count += 1 if user.subscription.payment_name == "1 год" else 0
-                if len(user.payment) > 1:
+                if len(user.payments) > 1:
                     week_sub_renewal_count = sum(
                         1 for payment in user.payments if payment.payment_amount == 490)
             writer.writerow(
@@ -78,7 +78,6 @@ async def get_user_stat(session: AsyncSession) -> (str, bytes):
         sub_year_count=sub_year_count,
         week_sub_renewal_count=week_sub_renewal_count,
     )
-    logging.error(user_report_message)
     return user_report_message, file_content
 
 

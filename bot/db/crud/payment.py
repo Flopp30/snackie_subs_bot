@@ -19,14 +19,13 @@ class CRUDPayment(CRUDBase):
             status: str,
             payment_amount: float,
             session: AsyncSession,
-            verified_payment_id: str = None,
             user_id: int = None,
             user: User = None,
     ) -> BaseModel:
         """
         Creates a payment, sets the verified payment id to the user, if it was transferred
         """
-        if user_id and user is None:
+        if user_id:
             user = await user_crud.get_by_id(user_pk=user_id, session=session)
         payment = self.model(
             status=status,
@@ -34,13 +33,12 @@ class CRUDPayment(CRUDBase):
             date=datetime.now(),
             user=user,
         )
-        if verified_payment_id:
-            user.verified_payment_id = verified_payment_id
-        session.add(user)
+
         session.add(payment)
+        session.add(user)
         await session.commit()
-        await session.refresh(user)
         await session.refresh(payment)
+        await session.refresh(user)
         return payment
 
     async def get_this_month_multi(

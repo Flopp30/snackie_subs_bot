@@ -38,7 +38,8 @@ class CRUDUser(CRUDBase):
             user_id: int = None,
             sub_id: int = None,
             user: User = None,
-            subscription: Subscription = None
+            subscription: Subscription = None,
+            verified_payment_id: str = None,
     ) -> User:
         """
         Installs a subscription to the user. The subscription end date is also set
@@ -56,6 +57,8 @@ class CRUDUser(CRUDBase):
         elif subscription.sub_period_type == 'day':
             user.unsubscribe_date = datetime.now() + relativedelta(days=subscription.sub_period)
 
+        if verified_payment_id:
+            user.verified_payment_id = verified_payment_id
         user.is_active = True
         user.subscription = subscription
         user.is_accepted_for_auto_payment = not subscription.is_trial
