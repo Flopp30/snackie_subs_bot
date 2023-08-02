@@ -25,17 +25,12 @@ async def statistic(
                     filename="payments.csv"
                 )
             )
-        elif callback_data.action == StatisticCDAction.ACTIVE_USER:
+        elif callback_data.action == StatisticCDAction.USER_STAT:
+            report_message, csv_file = await get_user_stat(session)
+            await callback_query.message.answer(report_message)
             await callback_query.message.answer_document(
                 BufferedInputFile(
-                    await get_user_stat(session),
-                    filename="users_report.csv"
-                )
-            )
-        elif callback_data.action == StatisticCDAction.ALL_TIME_STAT:
-            await callback_query.message.answer_document(
-                BufferedInputFile(
-                    await get_user_stat(session),
+                    csv_file,
                     filename="users_report.csv"
                 )
             )

@@ -22,9 +22,8 @@ class StatisticCDAction(enum.IntEnum):
     """
         Statistic actions
     """
-    ACTIVE_USER = 0
+    USER_STAT = 0
     PAYMENT_STAT = 1
-    ALL_TIME_STAT = 2
 
 
 class StatisticCallBack(CallbackData, prefix="statistic"):

@@ -4,7 +4,7 @@ from bot.structure import StatisticCallBack, StatisticCDAction
 
 builder = InlineKeyboardBuilder()
 builder.button(
-    text="Отчет по пользователям", callback_data=StatisticCallBack(action=StatisticCDAction.ACTIVE_USER)
+    text="Отчет по пользователям", callback_data=StatisticCallBack(action=StatisticCDAction.USER_STAT)
 )
 builder.button(
     text="Отчет по платежам", callback_data=StatisticCallBack(action=StatisticCDAction.PAYMENT_STAT)

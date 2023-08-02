@@ -56,6 +56,7 @@ async def payment_process(
 
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=user_id, session=session)
+        verified_payment_id = checked_payment.get("payment_method", {}).get("id")
         if checked_payment.get('status') == 'succeeded':
             sub_id = int(checked_payment.get("metadata", dict()).get("sub_id", 0))
             sub_period = int(checked_payment.get("metadata", dict()).get("sub_period", 0))
@@ -63,7 +64,7 @@ async def payment_process(
             await payment_crud.create_payment(
                 status=checked_payment.get('status'),
                 payment_amount=payment_amount,
-                verified_payment_id=checked_payment.get("id"),
+                verified_payment_id=verified_payment_id,
                 session=session,
                 user=user,
             )
@@ -91,7 +92,7 @@ async def payment_process(
                 await payment_crud.create_payment(
                     status=checked_payment.get('status'),
                     payment_amount=payment_amount,
-                    verified_payment_id=checked_payment.get("payment_method", {}).get("id"),
+                    verified_payment_id=verified_payment_id,
                     session=session,
                     user=user,
                 )
