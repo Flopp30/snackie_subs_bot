@@ -100,7 +100,7 @@ async def payment_process(
         await payment_crud.update(
             payment,
             {
-                "status": checked_payment.get('status'),
+                "status": checked_payment.get('status') if time_breaker <= TOTAL_AWAIT_PAYMENT_SEC else "timeout",
             },
             session=session,
         )

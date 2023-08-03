@@ -112,7 +112,7 @@ async def get_payment_stat(session: AsyncSession) -> (str, bytes):
                         f"{user.subscription.payment_amount} rub",
                     ])
 
-        already_paid = sum(payment.payment_amount for payment in this_month_payments)
+        already_paid = sum(payment.payment_amount for payment in this_month_payments if payment.status == "succeeded")
         report_message = ("В этом месяцев суммарно (без учета новых подписок) "
                           f"должно получиться: {already_paid + will_be_paid} rub.\n"
                           f"Уже выплачено: {already_paid} rub.\n"
