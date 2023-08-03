@@ -1,4 +1,6 @@
+import asyncio
 import datetime
+import logging
 
 from aiogram import types
 from aiogram.enums import ParseMode
@@ -7,6 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.orm import sessionmaker
 
 from bot.db.crud import user_crud
+from bot.db.crud.task import task_crud
 from bot.handlers.start import start
 from bot.structure import PaymentTypeStates
 from bot.structure.keyboards import get_payment_types_board, get_payment_board
@@ -66,17 +69,35 @@ async def send_subscribe_invoice(
             url=url
         )
     )
-
-    apscheduler.add_job(
+    user_id = callback_query.from_user.id
+    job = apscheduler.add_job(
         payment_process,
         kwargs={
             "payment": yoo_payment,
             "message": callback_query.message,
             "get_async_session": get_async_session,
-            "user_id": callback_query.from_user.id,
+            "user_id": user_id,
             "invoice_for_delete": invoice,
             "bot": bot,
             "apscheduler": apscheduler,
         }
     )
+    async with get_async_session() as session:
+        tasks = await task_crud.get_active_payment_process_tasks_by_user_id(user_pk=user_id, session=session)
+    async with get_async_session() as session:
+        await task_crud.create({
+            'message_id': invoice.message_id,
+            'status': 'active',
+            'type': 'payment_process',
+            'user_id': user_id,
+            'job_id': job.id,
+        }, session=session)
+    await asyncio.sleep(0.5)
+    await asyncio.gather(*[process_task(task, job, bot, user_id, get_async_session) for task in tasks])
 
+
+async def process_task(task, job, bot, user_id, get_async_session):
+    async with get_async_session() as session:
+        if task.job_id != job.id:
+            await task_crud.update(task, {'status': 'canceled'}, session=session)
+            await bot.delete_message(user_id, task.message_id)

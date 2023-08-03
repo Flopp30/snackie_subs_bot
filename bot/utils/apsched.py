@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from yookassa import Payment as YooPayment
 
 from bot.db.crud import payment_crud, user_crud
+from bot.db.crud.task import task_crud
 from bot.settings import (
     INTERVAL_FOR_CHECKING_PAYMENT_SEC,
     TOTAL_AWAIT_PAYMENT_SEC,
@@ -104,6 +105,7 @@ async def payment_process(
             },
             session=session,
         )
+        await task_crud.mark_as_done_payment_process_task_by_user_id(user_id=user_id, session=session)
 
 
 async def check_auto_payment_daily(get_async_session: sessionmaker, bot: Bot, apscheduler: AsyncIOScheduler):

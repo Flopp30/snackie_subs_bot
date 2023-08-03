@@ -70,6 +70,7 @@ class User(CustomBaseModel):
     subscription_id = Column(Integer, ForeignKey('subscriptions.id'))
     subscription = relationship("Subscription", uselist=False)
     payments: Mapped[List["Payment"]] = relationship(back_populates="user")
+    tasks: Mapped[List["Tasks"]] = relationship(back_populates="user")
 
     def is_subscribe_ended(self):
         return self.is_active and self.unsubscribe_date <= datetime.now()
@@ -107,3 +108,13 @@ class SalesDate(BaseModel):
     sales_finish = Column(DateTime, default=datetime.now())
 
     is_active = Column(Boolean, default=True)
+
+
+class Tasks(CustomBaseModel):
+    __tablename__ = "tasks"
+    type = Column(VARCHAR(128))
+    status = Column(VARCHAR(128))
+    message_id = Column(BigInteger)
+    job_id = Column(VARCHAR(128))
+    user_id: Mapped[int] = Column(BigInteger, ForeignKey('users.id'))
+    user: Mapped["User"] = relationship(back_populates="tasks")
