@@ -128,5 +128,23 @@ class CRUDUser(CRUDBase):
             .order_by(self.model.id))
         return db_objs.unique().scalars().all()
 
+    async def get_multi_by_attribute(
+            self,
+            attr_name: str,
+            attr_value: str | int | bool,
+            session: AsyncSession,
+    ) -> BaseModel:
+        """
+        Returns db_object by any attr value.
+        """
+        attr = getattr(self.model, attr_name)
+
+        db_obj = await session.execute(
+            select(self.model).where(attr == attr_value).options(
+                selectinload(self.model.subscription)
+            )
+        )
+        return db_obj.scalars().all()
+
 
 user_crud = CRUDUser(User)

@@ -1,8 +1,6 @@
-import csv
 import json
 import uuid
 from datetime import datetime
-from io import StringIO, BytesIO
 
 from aiogram.fsm.context import FSMContext
 from dateutil.relativedelta import relativedelta
@@ -109,3 +107,43 @@ def get_auto_payment(sub: Subscription, user: User):
         }, idempotence_key
     )
     return json.loads(payment.json())
+
+
+async def get_users_by_group(group: int, session: AsyncSession):
+    users = None
+    match group:
+        case 0:
+            users = await user_crud.get_multi(session)
+        case 1:
+            users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=False)
+        case 2:
+            users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=True)
+        case 3:
+            all_active_users = await user_crud.get_multi_by_attribute(
+                session=session,
+                attr_name='is_active',
+                attr_value=True)
+            users = [user for user in all_active_users if user.subscription.payment_name == "7 дней"]
+        case 4:
+            all_active_users = await user_crud.get_multi_by_attribute(
+                session=session,
+                attr_name='is_active',
+                attr_value=True
+            )
+            users = [user for user in all_active_users if user.subscription.payment_name == "1 месяц"]
+        case 5:
+            all_active_users = await user_crud.get_multi_by_attribute(
+                session=session,
+                attr_name='is_active',
+                attr_value=True
+            )
+            users = [user for user in all_active_users if user.subscription.payment_name == "3 месяца"]
+        case 3:
+            all_active_users = await user_crud.get_by_attribute(
+                session=session,
+                attr_name='is_active',
+                attr_value=True
+            )
+            users = [user for user in all_active_users if user.subscription.payment_name == "1 год"]
+
+    return users

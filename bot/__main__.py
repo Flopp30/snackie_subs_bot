@@ -12,10 +12,11 @@ from redis.asyncio.client import Redis
 from yookassa import Configuration
 
 from bot.db.engine import get_async_session
-from bot.handlers import register_user_commands, BOT_COMMANDS_INFO
+from bot.handlers import register_user_commands
 from bot.middleware.apscheduler import SchedulerMiddleware
 from bot.middleware.throttling import ThrottlingMiddleware
 from bot.settings import TG_BOT_KEY, logger, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, REDIS_HOST
+from bot.text_for_messages import BOT_COMMANDS_INFO
 from bot.utils import apsched
 
 

@@ -9,7 +9,7 @@ from bot.db.crud import user_crud
 from bot.db.crud.sales_date import crud_sales
 from bot.settings import ADMIN_TG_ID, SECOND_ADMIN_TG
 from bot.structure.keyboards import START_BOARD, AFTER_PAYMENT_REDIRECT_BOARD
-from bot.structure.keyboards.statistic_board import STATISTIC_BOARD
+from bot.structure.keyboards.admin_board import ADMIN_BOARD
 from bot.text_for_messages import TEXT_GREETING, TEXT_MAIN_FOR_IS_ACTIVE_USER, TEXT_NO_SALE
 from bot.utils import get_beautiful_sub_date
 
@@ -50,5 +50,5 @@ async def start(
         if user.id in (int(SECOND_ADMIN_TG), int(ADMIN_TG_ID)):
             await message.answer(
                 text="Административная часть",
-                reply_markup=STATISTIC_BOARD,
+                reply_markup=ADMIN_BOARD,
             )
