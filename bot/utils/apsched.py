@@ -174,6 +174,11 @@ async def auto_payment_process(
                         session=session, with_trials=False, with_amount=True
                     ))
                 )
+                await user_crud.unsubscribe(
+                    db_obj=user,
+                    session=session
+                )
+                await ban_user_in_owned_bots(user=user, bot=bot)
             await payment_crud.update(  # update payment status
                 db_payment,
                 {
