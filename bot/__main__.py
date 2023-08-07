@@ -42,7 +42,7 @@ async def async_main() -> None:
     apscheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     apscheduler.add_job(
         apsched.check_auto_payment_daily,
-        trigger=IntervalTrigger(seconds=5),
+        trigger=IntervalTrigger(hours=4),
         kwargs={
             "get_async_session": get_async_session,
             "bot": bot,
