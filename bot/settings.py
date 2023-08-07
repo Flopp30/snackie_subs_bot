@@ -82,48 +82,51 @@ class OwnedBot:
                f"&tg_chat_id={self.tg_chat_id}&user_id={user_id}"
 
 
-WORKOUT_BOT_API_KEY = os.getenv("WORKOUT_BOT_API_KEY")
-WORKOUT_BOT_CHAT_ID = int(os.getenv("WORKOUT_BOT_CHAT_ID"))
+WORKOUT_BOT_API_KEY = os.getenv("WORKOUT_BOT_API_KEY", "")
+WORKOUT_BOT_CHAT_ID = int(os.getenv("WORKOUT_BOT_CHAT_ID", 1))
 
-ROOKIE_BOT_API_KEY = os.getenv("ROOKIE_BOT_API_KEY")
-ROOKIE_BOT_CHAT_ID = int(os.getenv("ROOKIE_BOT_CHAT_ID"))
+ROOKIE_BOT_API_KEY = os.getenv("ROOKIE_BOT_API_KEY", "")
+ROOKIE_BOT_CHAT_ID = int(os.getenv("ROOKIE_BOT_CHAT_ID", 1))
 
-PRO_WORKOUT_BOT_API_KEY = os.getenv("PRO_WORKOUT_BOT_API_KEY")
-PRO_WORKOUT_BOT_CHAT_ID = int(os.getenv("PRO_WORKOUT_BOT_CHAT_ID"))
+PRO_WORKOUT_BOT_API_KEY = os.getenv("PRO_WORKOUT_BOT_API_KEY", "")
+PRO_WORKOUT_BOT_CHAT_ID = int(os.getenv("PRO_WORKOUT_BOT_CHAT_ID", 1))
 
-BANDS_BOT_API_KEY = os.getenv("BANDS_BOT_API_KEY")
-BANDS_BOT_CHAT_ID = int(os.getenv("BANDS_BOT_CHAT_ID"))
+BANDS_BOT_API_KEY = os.getenv("BANDS_BOT_API_KEY", "")
+BANDS_BOT_CHAT_ID = int(os.getenv("BANDS_BOT_CHAT_ID", 1))
 
-WORKOUT_BOT = OwnedBot(
-    name="Workout bot",
-    api_token=WORKOUT_BOT_API_KEY,
-    tg_chat_id=WORKOUT_BOT_CHAT_ID
-)
+OWNED_BOTS = []
+if WORKOUT_BOT_API_KEY:
+    WORKOUT_BOT = OwnedBot(
+        name="Workout bot",
+        api_token=WORKOUT_BOT_API_KEY,
+        tg_chat_id=WORKOUT_BOT_CHAT_ID
+    )
+    OWNED_BOTS.append(WORKOUT_BOT)
 
-ROOKIE_BOT = OwnedBot(
-    name="Rookie bot",
-    api_token=ROOKIE_BOT_API_KEY,
-    tg_chat_id=ROOKIE_BOT_CHAT_ID
-)
+if ROOKIE_BOT_API_KEY:
+    ROOKIE_BOT = OwnedBot(
+        name="Rookie bot",
+        api_token=ROOKIE_BOT_API_KEY,
+        tg_chat_id=ROOKIE_BOT_CHAT_ID
+    )
+    OWNED_BOTS.append(ROOKIE_BOT)
 
-PRO_WORKOUT_BOT = OwnedBot(
-    name="Pro workout bot",
-    api_token=PRO_WORKOUT_BOT_API_KEY,
-    tg_chat_id=PRO_WORKOUT_BOT_CHAT_ID
-)
+if PRO_WORKOUT_BOT_API_KEY:
+    PRO_WORKOUT_BOT = OwnedBot(
+        name="Pro workout bot",
+        api_token=PRO_WORKOUT_BOT_API_KEY,
+        tg_chat_id=PRO_WORKOUT_BOT_CHAT_ID
+    )
+    OWNED_BOTS.append(PRO_WORKOUT_BOT)
 
-BANDS_BOT = OwnedBot(
-    name="Bands bot",
-    api_token=BANDS_BOT_API_KEY,
-    tg_chat_id=BANDS_BOT_CHAT_ID,
-)
+if BANDS_BOT_API_KEY:
+    BANDS_BOT = OwnedBot(
+        name="Bands bot",
+        api_token=BANDS_BOT_API_KEY,
+        tg_chat_id=BANDS_BOT_CHAT_ID,
+    )
+    OWNED_BOTS.append(BANDS_BOT)
 
-OWNED_BOTS = [
-    WORKOUT_BOT,
-    ROOKIE_BOT,
-    PRO_WORKOUT_BOT,
-    BANDS_BOT,
-]
 
 # Request
 HEADERS = {
