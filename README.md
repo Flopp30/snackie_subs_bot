@@ -54,7 +54,7 @@
 
 ### Installation
 1) Create ```.env``` file in root folder
-2) ```docker-compose up -f docker-compose-exclude-bot.yaml ``` (u can change postgres_db port if u need)
+2) ```docker-compose -f docker-compose-exclude-bot.yaml up``` (u can change postgres_db port if u need)
 3) Create ```alembic.ini``` file in root folder
 4) ```pip install --upgrade pip && pip install -r requirements.txt```
 5) Paste this in ```alembic.ini``` (if u changed port in docker-compose-file - change port and here)

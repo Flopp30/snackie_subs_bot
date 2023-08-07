@@ -44,8 +44,8 @@ POSTGRES_URL = URL.create(
     database=DB_NAME,
 )
 
-REDIS_HOST = os.getenv("REDIS_HOST", '0:0:0:0')
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6378"))
+REDIS_HOST = os.getenv("REDIS_HOST", '0.0.0.0')
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 
 # TG
 TG_BOT_KEY = os.getenv("TG_BOT_KEY")
