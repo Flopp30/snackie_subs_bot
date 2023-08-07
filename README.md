@@ -53,10 +53,11 @@
 8) text_for_messages.py
 
 ### Installation
-0) Create ```.env``` file in root folder
-1) ```docker-compose up -f docker-compose-exclude-bot.yaml ``` (u can change postgres_db port if u need)
-2) Create ```alembic.ini``` file in root folder
-3) Paste this in ```alembic.ini``` (if u changed port in docker-compose-file - change port and here)
+1) Create ```.env``` file in root folder
+2) ```docker-compose up -f docker-compose-exclude-bot.yaml ``` (u can change postgres_db port if u need)
+3) Create ```alembic.ini``` file in root folder
+4) ```pip install --upgrade pip && pip install -r requirements.txt```
+5) Paste this in ```alembic.ini``` (if u changed port in docker-compose-file - change port and here)
     ```
    [alembic]
    
@@ -105,5 +106,5 @@
    datefmt = %H:%M:%S
 
    ```
-4) ```alembic upgrade head```
-5) ```python -m bot```
+6) ```alembic upgrade head```
+7) ```python -m bot```

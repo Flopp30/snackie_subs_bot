@@ -36,6 +36,6 @@ urllib3==2.0.2
 var-dump==1.2
 wrapt==1.15.0
 yarl==1.9.1
-yookassa==2.4.*
+yookassa==2.4.0
 zope.event==4.6
 zope.interface==6.0
