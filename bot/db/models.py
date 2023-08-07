@@ -1,5 +1,5 @@
 """
-User model
+Models
 """
 from datetime import datetime
 from typing import List
@@ -25,16 +25,18 @@ class Subscription(BaseModel):
     """
     __tablename__ = "subscriptions"
 
-    id = Column(BigInteger, unique=True, nullable=False, primary_key=True)
-    payment_name = Column(VARCHAR(32), nullable=False)
-    humanize_name = Column(VARCHAR(32), nullable=False)
+    id = Column(BigInteger, unique=True, nullable=False, primary_key=True)  # sub id
+    payment_name = Column(VARCHAR(32), nullable=False)  # payment name
+    humanize_name = Column(VARCHAR(32), nullable=False)  # display name for user
 
-    payment_amount = Column(Integer, nullable=False, default=0)
-    payment_currency = Column(VARCHAR(5), default="RUB", nullable=False)
+    payment_amount = Column(Integer, nullable=False, default=0)  # amount
+    payment_currency = Column(VARCHAR(5), default="RUB", nullable=False)  # currency
 
-    sub_period = Column(Integer, nullable=False)
-    sub_period_type = Column(VARCHAR(32), default='month')
-    is_trial = Column(Boolean, default=False)
+    sub_period = Column(Integer, nullable=False)  # sub period
+    sub_period_type = Column(VARCHAR(32), default='month')  # sub period type (day, month)
+
+    is_trial = Column(Boolean, default=False)  # is_trial marker
+    # used only for weekly subscription, because it can only be used once
 
     def __str__(self):
         return f"{self.id}:{self.payment_name}:{self.payment_currency}"
@@ -62,10 +64,14 @@ class User(CustomBaseModel):
     username = Column(VARCHAR(32))
 
     is_active = Column(Boolean, default=False)
-    is_accepted_for_auto_payment = Column(Boolean, default=False)
+
+    is_accepted_for_auto_payment = Column(Boolean, default=False)  # used for automatic debiting of money.
+    # When a user unsubscribes, False falls here and next time we won’t write off money from him
+
     first_sub_date = Column(DateTime, name="sub_date")
     unsubscribe_date = Column(DateTime, name="unsub_date")
-    verified_payment_id = Column(VARCHAR(128))
+    verified_payment_id = Column(VARCHAR(128))  # used for automatic debiting of money.
+    # with this ID we can debiting money without user's approve
 
     subscription_id = Column(Integer, ForeignKey('subscriptions.id'))
     subscription = relationship("Subscription", uselist=False)
@@ -81,7 +87,7 @@ class User(CustomBaseModel):
 
 class Payment(BaseModel):
     """
-    Payments table
+    Payments model
     """
     __tablename__ = "payments"
     id = Column(BigInteger, unique=True, nullable=False, primary_key=True)
@@ -99,7 +105,7 @@ class Payment(BaseModel):
 
 class SalesDate(BaseModel):
     """
-    Sales date models
+    Sales date model
     """
     __tablename__ = "sales_dates"
     id = Column(BigInteger, unique=True, nullable=False, primary_key=True)
@@ -111,10 +117,15 @@ class SalesDate(BaseModel):
 
 
 class Tasks(CustomBaseModel):
+    """
+    Task model. Used for tracking apscheduler's tasks
+    """
     __tablename__ = "tasks"
     type = Column(VARCHAR(128))
     status = Column(VARCHAR(128))
-    message_id = Column(BigInteger)
-    job_id = Column(VARCHAR(128))
+
+    message_id = Column(BigInteger)  # used for deleting message if user change sub type when choose payment
+    job_id = Column(VARCHAR(128))  # used for stopped job if user change sub type when choose payment
+
     user_id: Mapped[int] = Column(BigInteger, ForeignKey('users.id'))
     user: Mapped["User"] = relationship(back_populates="tasks")

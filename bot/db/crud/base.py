@@ -1,3 +1,6 @@
+"""
+Base CRUD methods
+"""
 from typing import Optional, Sequence
 
 from sqlalchemy import select
@@ -9,7 +12,7 @@ from bot.db.models import User
 
 class CRUDBase:
     """
-    Basic CRUD operaions to work with db.
+    Basic CRUD operations to work with db.
     """
 
     def __init__(self, model):
@@ -70,6 +73,9 @@ class CRUDBase:
             obj_in_data: dict[str: str | int | bool],
             session: AsyncSession,
     ) -> BaseModel:
+        """
+        Creates new db_object and returns it.
+        """
         db_obj = self.model(**obj_in_data)
         session.add(db_obj)
         await session.commit()

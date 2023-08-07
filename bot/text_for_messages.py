@@ -1,6 +1,7 @@
 """
 Texts for bot answers
 """
+from bot import settings
 
 BOT_COMMANDS_INFO = (
     ("start",
@@ -55,8 +56,10 @@ TEXT_TARIFFS = ("Клуб работает по подписке.\nТы може
 TEXT_TARIFFS_DETAIL = ("{humanize_name} - {payment_period_name}, <s>{crossed_out_price}</s> {payment_amount} "
                        "{payment_currency}\n")
 
-TEXT_INVOICE = ("Ссылка будет активна в течение 15 минут. Если не успеешь оплатить "
-                "- запроси ее заново, нажав кнопку выбранного тарифа.")
+TEXT_INVOICE = (
+    f"Ссылка будет активна в течение {settings.TOTAL_AWAIT_PAYMENT_SEC // 60} минут. Если не успеешь оплатить "
+    "- запроси ее заново, нажав кнопку выбранного тарифа."
+)
 
 TEXT_NOTIFICATION_ONE_DAY_AFTER_UNSUCCESSFUL_PAYMENT = ("Привет!\nАнтидиетический фитнес клуб - это не"
                                                         " только тренировки, "

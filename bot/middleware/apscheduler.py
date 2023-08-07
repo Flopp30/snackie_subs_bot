@@ -5,6 +5,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 class SchedulerMiddleware(BaseMiddleware):
+    """
+        A middleware that injects scheduler into data.
+    """
     def __init__(self, scheduler: AsyncIOScheduler):
         self.scheduler = scheduler
 

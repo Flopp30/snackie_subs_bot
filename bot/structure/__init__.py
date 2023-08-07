@@ -5,6 +5,7 @@ __all__ = [
     "AdminsCallBack",
     "AdminsCDAction",
     "UserGroupsCD",
+    "GROUP_NAMES",
     "UserGroupsCallBack",
     "SendMessageState",
     "SendMessageCallBack",
@@ -22,5 +23,6 @@ from bot.structure.callback_data_states import (
     UserGroupsCallBack,
     SendMessageCallBack,
     SendMessageActionsCD,
+    GROUP_NAMES,
 )
 from bot.structure.fsm_groups import SendMessageState

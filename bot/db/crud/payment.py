@@ -1,3 +1,6 @@
+"""
+Payment crud
+"""
 from datetime import datetime
 from typing import Sequence
 
@@ -23,7 +26,7 @@ class CRUDPayment(CRUDBase):
             user: User = None,
     ) -> BaseModel:
         """
-        Creates a payment, sets the verified payment id to the user, if it was transferred
+            Creates a payment
         """
         if user_id:
             user = await user_crud.get_by_id(user_pk=user_id, session=session)
@@ -46,16 +49,35 @@ class CRUDPayment(CRUDBase):
             session: AsyncSession,
     ) -> Sequence[BaseModel]:
         """
-        Returns a list of payments for this month
+            Returns a list of payments for this month
         """
-        date_now = datetime.now()
-        current_month = date_now.month
-        db_obj = await session.execute(
+        current_month = datetime.now().month
+        payments = await session.execute(
             select(self.model).where(
                 (extract('month', self.model.date) == current_month)
             )
         )
-        return db_obj.scalars().all()
+        return payments.scalars().all()
+
+    async def mark_canceled_all_unclosed_payments_exclude_current(
+            self,
+            current_payment_id: int,
+            session: AsyncSession
+    ):
+        """
+            Marks all unclosed payments as canceled
+        """
+        query = select(self.model).where(
+            self.model.id != current_payment_id,
+            self.model.status == "pending"
+        )
+        payments = await session.execute(query)
+
+        for payment in payments.scalars().all():
+            payment.status = "canceled"
+            session.add(payment)
+
+        await session.commit()
 
 
 payment_crud = CRUDPayment(Payment)

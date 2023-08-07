@@ -1,7 +1,10 @@
 import json
+import logging
 import uuid
 from datetime import datetime
 
+from aiogram import Bot
+from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.context import FSMContext
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +13,14 @@ from yookassa import Payment as Yoo_Payment
 from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
 from bot.settings import TG_BOT_URL
+from bot.structure import UserGroupsCD
 from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL
 
 
 async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials: bool = True) -> str:
+    """
+        Get beautiful tariffs description
+    """
     subscriptions = await sub_crud.get_multi(session, with_trials=with_trials)
     text = TEXT_TARIFFS
     subscriptions_for_state = []
@@ -37,6 +44,9 @@ async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials
 
 
 async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
+    """
+        Gives statistics of the format: "Ты с нами уже 2 часа 15 мин"
+    """
     current_date = datetime.now()
     date_diff = relativedelta(current_date, first_sub_date)
     time_units = {
@@ -109,41 +119,72 @@ def get_auto_payment(sub: Subscription, user: User):
     return json.loads(payment.json())
 
 
-async def get_users_by_group(group: int, session: AsyncSession):
+async def get_users_by_group(group: UserGroupsCD, session: AsyncSession):
+    """
+        Split users by group for sending message by admin
+    """
     users = None
-    match group:
-        case 0:
-            users = await user_crud.get_multi(session)
-        case 1:
-            users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=False)
-        case 2:
-            users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=True)
-        case 3:
-            all_active_users = await user_crud.get_multi_by_attribute(
-                session=session,
-                attr_name='is_active',
-                attr_value=True)
+    if group == UserGroupsCD.ALL_USERS:
+        users = await user_crud.get_multi(session)
+    elif group == UserGroupsCD.UNSUB_USERS:
+        users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=False)
+    elif group == UserGroupsCD.SUB_USERS:
+        users = await user_crud.get_multi_by_attribute(session=session, attr_name='is_active', attr_value=True)
+    else:
+        all_active_users = await user_crud.get_multi_by_attribute(
+            session=session,
+            attr_name='is_active',
+            attr_value=True
+        )
+        if group == UserGroupsCD.SEVEN_DAYS_USERS:
             users = [user for user in all_active_users if user.subscription.payment_name == "7 дней"]
-        case 4:
-            all_active_users = await user_crud.get_multi_by_attribute(
-                session=session,
-                attr_name='is_active',
-                attr_value=True
-            )
+
+        elif group == UserGroupsCD.ONE_MONTH_USERS:
             users = [user for user in all_active_users if user.subscription.payment_name == "1 месяц"]
-        case 5:
-            all_active_users = await user_crud.get_multi_by_attribute(
-                session=session,
-                attr_name='is_active',
-                attr_value=True
-            )
+
+        elif group == UserGroupsCD.THREE_MONTHS_USERS:
             users = [user for user in all_active_users if user.subscription.payment_name == "3 месяца"]
-        case 3:
-            all_active_users = await user_crud.get_by_attribute(
-                session=session,
-                attr_name='is_active',
-                attr_value=True
-            )
+
+        elif group == UserGroupsCD.ONE_YEAR_USERS:
             users = [user for user in all_active_users if user.subscription.payment_name == "1 год"]
 
     return users
+
+
+class CustomCounter:
+    """
+    Custom counter class
+    """
+    def __init__(self, init_value: int = 0):
+        self.count = init_value
+
+    def increment(self, value: int = 1):
+        self.count += value
+
+    def __str__(self):
+        return str(self.count)
+
+
+async def bot_send_message(
+        bot: Bot,
+        message: str,
+        user_id: int,
+        count_blocked: CustomCounter = None,
+        count_error: CustomCounter = None,
+        count_success: CustomCounter = None
+):
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=message,
+        )
+    except TelegramForbiddenError:
+        if count_blocked:
+            count_blocked.increment()
+    except Exception as e:
+        logging.error(e)
+        if count_error:
+            count_error.increment()
+    else:
+        if count_success:
+            count_success.increment()

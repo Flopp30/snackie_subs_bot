@@ -9,7 +9,9 @@ from bot.db.crud import user_crud
 
 
 class RegisterCheck(BaseMiddleware):
-
+    """
+        Check if user is registered
+    """
     async def __call__(
             self,
             handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],

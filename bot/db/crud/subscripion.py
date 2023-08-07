@@ -1,3 +1,6 @@
+"""
+Subs sale
+"""
 from typing import Sequence
 
 from sqlalchemy import select
@@ -10,7 +13,7 @@ from bot.db.crud.base import CRUDBase
 
 class CRUDSub(CRUDBase):
     """
-    Implements Subscription specific methods
+        Implements Subscription specific methods
     """
     async def get_multi(
             self,
@@ -18,7 +21,7 @@ class CRUDSub(CRUDBase):
             with_trials: bool = True,
     ) -> Sequence[BaseModel]:
         """
-        Returns list of db_objects
+            Returns list of db_objects
         """
         if with_trials:
             db_objs = await session.execute(select(self.model).order_by(self.model.id))

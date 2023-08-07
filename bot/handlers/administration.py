@@ -1,19 +1,18 @@
 """
-statistic handler
+admins handlers
 """
 import asyncio
-import logging
 
-from aiogram import types, Bot
+from aiogram import types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile
 from sqlalchemy.orm import sessionmaker
 
 from bot.handlers import start
 from bot.structure import AdminsCDAction, AdminsCallBack, SendMessageState, UserGroupsCallBack, UserGroupsCD, \
-    SendMessageCallBack, SendMessageActionsCD
+    SendMessageCallBack, SendMessageActionsCD, GROUP_NAMES
 from bot.structure.keyboards import USER_GROUPS_BOARD, SEND_MESSAGE_ACCEPT_BOARD
-from bot.utils import get_users_by_group
+from bot.utils import get_users_by_group, bot_send_message, CustomCounter
 from bot.utils.statistic import get_user_stat, get_payment_stat
 
 
@@ -23,8 +22,11 @@ async def admin_start(
         callback_data: AdminsCallBack,
         state: FSMContext,
 ) -> None:
+    """
+        admins start handler
+    """
     async with get_async_session() as session:
-        if callback_data.action == AdminsCDAction.PAYMENT_STAT:
+        if callback_data.action == AdminsCDAction.PAYMENT_STAT:  # Statistic by payments
             report_message, csv_file = await get_payment_stat(session)
             await callback_query.message.answer(report_message)
             await callback_query.message.answer_document(
@@ -33,7 +35,7 @@ async def admin_start(
                     filename="payments.csv"
                 )
             )
-        elif callback_data.action == AdminsCDAction.USER_STAT:
+        elif callback_data.action == AdminsCDAction.USER_STAT:  # Statistic by users
             report_message, csv_file = await get_user_stat(session)
             await callback_query.message.answer(report_message)
             await callback_query.message.answer_document(
@@ -42,8 +44,8 @@ async def admin_start(
                     filename="users_report.csv"
                 )
             )
-        elif callback_data.action == AdminsCDAction.SEND_MESSAGE:
-            await state.set_state(SendMessageState.waiting_for_select_group)
+        elif callback_data.action == AdminsCDAction.SEND_MESSAGE:  # Sending message for user's groups
+            await state.set_state(SendMessageState.waiting_for_select_group)  # set state - waiting for group
             await callback_query.message.answer('Выбери группу', reply_markup=USER_GROUPS_BOARD)
 
 
@@ -51,7 +53,10 @@ async def send_message_start(
         message: types.Message,
         state: FSMContext,
 ):
-    await state.set_state(SendMessageState.waiting_for_select_group)
+    """
+    Needs for return by message (check async def send_message_confirmation on line 86)
+    """
+    await state.set_state(SendMessageState.waiting_for_select_group)  # set state - waiting for group
     await message.answer('Выбери группу', reply_markup=USER_GROUPS_BOARD)
 
 
@@ -60,24 +65,13 @@ async def send_messages_enter_a_text(
         callback_data: UserGroupsCallBack,
         state: FSMContext,
 ) -> None:
-    await state.update_data(group=callback_data.group)
-    await state.set_state(SendMessageState.waiting_for_text)
-    group = ''
-    match callback_data.group:
-        case UserGroupsCD.ALL_USERS:
-            group = 'Все пользователи'
-        case UserGroupsCD.SUB_USERS:
-            group = 'Подписанные пользователи'
-        case UserGroupsCD.UNSUB_USERS:
-            group = 'Неподписанные пользователи'
-        case UserGroupsCD.SEVEN_DAYS_USERS:
-            group = 'Недельки'
-        case UserGroupsCD.ONE_MONTH_USERS:
-            group = 'Месячники'
-        case UserGroupsCD.THREE_MONTHS_USERS:
-            group = 'Три месяца'
-        case UserGroupsCD.ONE_YEAR_USERS:
-            group = 'Годовые шейхи'
+    """
+    Enter a text handler
+    """
+    await state.update_data(group=callback_data.group)  # add to context selected group
+    await state.set_state(SendMessageState.waiting_for_text)  # set state - waiting for message text
+
+    group = GROUP_NAMES.get(callback_data.group, 'Неизвестная группа')
     await callback_query.message.answer(
         f'Выбранная группа: {group} \n'
         'Пришли текст сообщения.\n'
@@ -91,15 +85,18 @@ async def send_message_confirmation(
         get_async_session: sessionmaker,
         state: FSMContext,
 ):
-    if message.text.lower() == "отмена":
+    """
+     show the admin a message to send to the group and get the final confirmation
+    """
+    if message.text.lower() == "отмена":  # return to changing group
         await state.get_data()
         return await send_message_start(message, state)
-    elif message.text.lower() == "домой":
+    elif message.text.lower() == "домой":  # return to start handler
         await state.get_data()
         return await start(message, get_async_session)
 
-    await state.set_state(SendMessageState.waiting_for_confirm)
-    await state.update_data(message=message.text)
+    await state.set_state(SendMessageState.waiting_for_confirm)  # set state - waiting for confirmation
+    await state.update_data(message=message.text)  # add to context message.text
 
     await message.answer("Сообщение будет выглядеть так:")
     await asyncio.sleep(0.5)
@@ -115,19 +112,23 @@ async def send_messages_final(
         state: FSMContext,
         bot,
 ) -> None:
+    """
+    Send message final handler
+    """
+
     data = await state.get_data()
-    group = data.get('group')
-    message = data.get('message')
+    group, message = data.get('group'), data.get('message')  # get by context selected group and message.text
+
     match callback_data.action:
 
-        case SendMessageActionsCD.EDIT_TEXT:
+        case SendMessageActionsCD.EDIT_TEXT:  # return to edit text
             return await send_messages_enter_a_text(
                 callback_query,
                 UserGroupsCallBack(group=UserGroupsCD(group)),
                 state,
             )
 
-        case SendMessageActionsCD.CHANGE_GROUP:
+        case SendMessageActionsCD.CHANGE_GROUP:  # return to change group
             return await admin_start(
                 callback_query,
                 get_async_session,
@@ -135,28 +136,35 @@ async def send_messages_final(
                 state,
             )
 
-        case SendMessageActionsCD.ACCEPT:
+        case SendMessageActionsCD.ACCEPT:  # sending message for users
             async with get_async_session() as session:
-                users = await get_users_by_group(group, session)
+                users = await get_users_by_group(
+                    group=group,
+                    session=session
+                )
                 if users:
-                    counter_success = 0
-                    for user in users:
-                        try:
-                            await bot.send_message(
-                                chat_id=user.id,
-                                text=message,
-                            )
-                        except Exception as e:
-                            logging.error(e)
-                        else:
-                            counter_success += 1
-                    await callback_query.message.answer(f"Отправлено сообщений: {counter_success}")
+                    count_success = CustomCounter()
+                    count_error = CustomCounter()
+                    count_blocked = CustomCounter()
+                    tasks = [
+                        bot_send_message(
+                            bot,
+                            message,
+                            user.id,
+                            count_blocked,
+                            count_error,
+                            count_success,
+                        ) for user in users
+                    ]
+                    await asyncio.gather(*tasks)
+                    await callback_query.message.answer(f"Отправлено сообщений: {count_success}\n"
+                                                        f"Бот в бане: {count_blocked}\n"
+                                                        f"Ошибок: {count_error}")
                 else:
-                    await callback_query.message.answer(f"Пользователей этой группу не найдено :(")
+                    await callback_query.message.answer("Пользователей этой группы не найдено :(")
                     return await admin_start(
                         callback_query,
                         get_async_session,
                         AdminsCallBack(action=AdminsCDAction.SEND_MESSAGE),
                         state,
                     )
-

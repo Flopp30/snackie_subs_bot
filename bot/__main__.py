@@ -24,11 +24,13 @@ async def async_main() -> None:
     # yookassa connect
     Configuration.account_id = YOOKASSA_SHOP_ID
     Configuration.secret_key = YOOKASSA_SECRET_KEY
+
     # init dispatcher and bot
     bot = Bot(token=TG_BOT_KEY)
     redis = Redis(host=REDIS_HOST)
     storage = RedisStorage(redis)
     dp = Dispatcher(storage=storage)
+
     # handlers
     commands_for_bot = []
     for cmd in BOT_COMMANDS_INFO:
@@ -40,7 +42,7 @@ async def async_main() -> None:
     apscheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     apscheduler.add_job(
         apsched.check_auto_payment_daily,
-        trigger=IntervalTrigger(days=1),
+        trigger=IntervalTrigger(seconds=5),
         kwargs={
             "get_async_session": get_async_session,
             "bot": bot,
@@ -50,8 +52,10 @@ async def async_main() -> None:
 
     apscheduler.start()
 
+    # middlewares init
     dp.update.middleware.register(SchedulerMiddleware(apscheduler))
     dp.message.middleware.register(ThrottlingMiddleware(storage))
+
     await dp.start_polling(bot, get_async_session=get_async_session)
 
 

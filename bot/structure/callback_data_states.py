@@ -47,6 +47,17 @@ class UserGroupsCD(enum.IntEnum):
     ONE_YEAR_USERS = 6
 
 
+GROUP_NAMES = {
+    UserGroupsCD.ALL_USERS: 'Все пользователи',
+    UserGroupsCD.SUB_USERS: 'Подписанные пользователи',
+    UserGroupsCD.UNSUB_USERS: 'Неподписанные пользователи',
+    UserGroupsCD.SEVEN_DAYS_USERS: 'Недельки',
+    UserGroupsCD.ONE_MONTH_USERS: 'Месячники',
+    UserGroupsCD.THREE_MONTHS_USERS: 'Три месяца',
+    UserGroupsCD.ONE_YEAR_USERS: 'Годовые шейхи',
+}
+
+
 class UserGroupsCallBack(CallbackData, prefix="messages"):
     """
     Statistic callback

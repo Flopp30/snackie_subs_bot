@@ -1,6 +1,4 @@
 import asyncio
-import datetime
-import logging
 
 from aiogram import types
 from aiogram.enums import ParseMode
@@ -8,8 +6,7 @@ from aiogram.fsm.context import FSMContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.orm import sessionmaker
 
-from bot.db.crud import user_crud
-from bot.db.crud.task import task_crud
+from bot.db.crud import user_crud, task_crud
 from bot.handlers.start import start
 from bot.structure import PaymentTypeStates
 from bot.structure.keyboards import get_payment_types_board, get_payment_board
@@ -36,7 +33,7 @@ async def subscription_start(
                 )),
             )
         else:
-            return await start(message=callback_query.message, get_async_session=get_async_session)
+            return await start(message=callback_query.message, get_async_session=get_async_session, user_id=user.id)
 
 
 async def send_subscribe_invoice(
@@ -49,7 +46,6 @@ async def send_subscribe_invoice(
 ) -> None:
     state_data: dict = await state.get_data()
     subscriptions: list = state_data.get("subscriptions", "")
-
     current_sub: dict | None = None
 
     for sub in subscriptions:
@@ -57,9 +53,9 @@ async def send_subscribe_invoice(
             current_sub = sub
             break
 
-    yoo_payment = await get_yoo_payment(current_sub)
+    yoo_payment = await get_yoo_payment(current_sub)  # get payment from yookassa
 
-    url = yoo_payment.get("confirmation", dict()).get("confirmation_url", None)
+    url = yoo_payment.get("confirmation", dict()).get("confirmation_url", None)  # url for payments
 
     invoice = await callback_query.message.answer(
         text=TEXT_INVOICE,
@@ -70,20 +66,23 @@ async def send_subscribe_invoice(
         )
     )
     user_id = callback_query.from_user.id
-    job = apscheduler.add_job(
+    job = apscheduler.add_job(  # add scheduler task for checking payment and set subscribe after
         payment_process,
         kwargs={
-            "payment": yoo_payment,
-            "message": callback_query.message,
+            "payment": yoo_payment,  # yoo_payment
+            "message": callback_query.message,  # message for answer
             "get_async_session": get_async_session,
             "user_id": user_id,
-            "invoice_for_delete": invoice,
+            "invoice_for_delete": invoice,  # delete invoice after timeout
             "bot": bot,
             "apscheduler": apscheduler,
         }
     )
+
     async with get_async_session() as session:
         tasks = await task_crud.get_active_payment_process_tasks_by_user_id(user_pk=user_id, session=session)
+        # need for kill all others active tasks for this user
+
     async with get_async_session() as session:
         await task_crud.create({
             'message_id': invoice.message_id,
@@ -92,8 +91,10 @@ async def send_subscribe_invoice(
             'user_id': user_id,
             'job_id': job.id,
         }, session=session)
+
     await asyncio.sleep(0.5)
     await asyncio.gather(*[process_task(task, job, bot, user_id, get_async_session) for task in tasks])
+    # kill others active tasks exclude current
 
 
 async def process_task(task, job, bot, user_id, get_async_session):

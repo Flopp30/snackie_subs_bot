@@ -1,4 +1,6 @@
-import uuid
+"""
+User crud
+"""
 from datetime import datetime
 from typing import Sequence
 
@@ -90,8 +92,7 @@ class CRUDUser(CRUDBase):
         """
         db_obj = await session.execute(
             select(self.model).where(
-                (self.model.is_active) &
-                (self.model.unsubscribe_date <= datetime.now().date())
+                (self.model.is_active) & (self.model.unsubscribe_date <= datetime.now())
             ).options(selectinload(self.model.subscription))
         )
         return db_obj.scalars().all()
@@ -104,12 +105,11 @@ class CRUDUser(CRUDBase):
         Returns a list of users with a subscription expiring this month
         """
         current_month = datetime.now().month
-        db_obj = await session.execute(
-            select(self.model).where(
-                (self.model.is_active) &
-                (extract('month', self.model.unsubscribe_date) == current_month)
-            ).options(selectinload(self.model.subscription))
-        )
+        query = (select(self.model)
+                 .where(
+            (self.model.is_active) & (extract('month', self.model.unsubscribe_date) == current_month))
+                 .options(selectinload(self.model.subscription)))
+        db_obj = await session.execute(query)
         return db_obj.scalars().all()
 
     async def get_multi(

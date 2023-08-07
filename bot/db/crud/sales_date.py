@@ -1,3 +1,6 @@
+"""
+Sales crud
+"""
 from datetime import datetime
 
 from sqlalchemy import select
@@ -19,15 +22,13 @@ class CRUDSales(CRUDBase):
         """
         Returns bool depending on whether sales are possible now or not
         """
-        today = datetime.now().date()
+        today = datetime.now()
         db_obj = await session.execute(
             select(self.model).where(
-                (self.model.is_active) &
-                (today >= self.model.sales_start) &
-                (today <= self.model.sales_finish)
+                (self.model.is_active) & (today >= self.model.sales_start) & (today <= self.model.sales_finish)
             )
         )
         return bool(db_obj.scalars().first())
 
 
-crud_sales = CRUDSales(SalesDate)
+sales_crud = CRUDSales(SalesDate)

@@ -5,13 +5,12 @@ import json
 import aiohttp
 from aiogram import types
 from apscheduler.triggers.date import DateTrigger
-from sqlalchemy.orm import sessionmaker
 from yookassa import Payment as YooPayment
 
 from bot.db import (
     User,
 )
-from bot.db.crud import user_crud, payment_crud
+from bot.db.crud import user_crud
 from bot.settings import (
     OWNED_BOTS,
     HEADERS,
@@ -19,21 +18,21 @@ from bot.settings import (
     logger,
     INTERVAL_FOR_CHECKING_PAYMENT_SEC
 )
-from bot.structure.keyboards import AFTER_PAYMENT_REDIRECT_BOARD, get_payment_types_board, START_BOARD
+from bot.structure.keyboards import AFTER_PAYMENT_REDIRECT_BOARD, START_BOARD
 from bot.text_for_messages import (
     TEXT_UNBAN_ERROR_USER,
     TEXT_UNBAN_ERROR_ADMIN,
     TEXT_PAYMENT_INFO,
     TEXT_SUCCESSFUL_PAYMENT,
-    TEXT_SUCCESSFUL_AUTO_PAYMENT,
-    TEXT_UNSUCCESSFUL_AUTO_PAYMENT,
     TEXT_NOTIFICATION_ONE_DAY_AFTER_UNSUCCESSFUL_PAYMENT,
     TEXT_NOTIFICATION_FIVE_DAYS_AFTER_UNSUCCESSFUL_PAYMENT,
 )
-from bot.utils.utils import get_auto_payment
 
 
 async def ban_user_in_owned_bots(user: User, bot):
+    """
+        Ban user's in owned bots
+    """
     for owned_bot in OWNED_BOTS:
         ban_url = owned_bot.get_ban_url(user_id=user.id)
         async with aiohttp.ClientSession() as aio_session:
@@ -48,6 +47,9 @@ async def ban_user_in_owned_bots(user: User, bot):
 
 
 async def unban_user_in_owned_bots(message: types.Message, user_id: int, bot):
+    """
+    Unban users in owned bots
+    """
     for owned_bot in OWNED_BOTS:
         unban_url = owned_bot.get_unban_url(user_id=user_id)
         async with aiohttp.ClientSession() as aio_session:
@@ -70,6 +72,9 @@ async def unban_user_in_owned_bots(message: types.Message, user_id: int, bot):
 
 
 async def send_confirm_message(sub_period, checked_payment, message):
+    """
+    Send confirm message after successful payment apscheduler's task
+    """
     currency = checked_payment.get("amount", dict()).get("currency", None)
     value = checked_payment.get("amount", dict()).get("value", None)
     sub_period_text = "1 месяц"
@@ -85,11 +90,13 @@ async def send_confirm_message(sub_period, checked_payment, message):
     await message.answer(
         TEXT_PAYMENT_INFO.format(value=value, currency=currency, sub_period_text=sub_period_text)
     )
-
     await message.answer(text=TEXT_SUCCESSFUL_PAYMENT, reply_markup=AFTER_PAYMENT_REDIRECT_BOARD)
 
 
 async def check_auto_payment(payment_id):
+    """
+    Async checking auto payment's status
+    """
     payment = json.loads((YooPayment.find_one(payment_id)).json())
     while payment['status'] == 'pending':
         payment = json.loads((YooPayment.find_one(payment_id)).json())
@@ -101,6 +108,9 @@ async def check_auto_payment(payment_id):
 
 
 async def notification_one_day_after_unsuccessful_payment(bot, user_id, get_async_session, apscheduler):
+    """
+        Notification after a failed payment attempt
+    """
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=user_id, session=session)
     if not user.is_active:
@@ -121,6 +131,9 @@ async def notification_one_day_after_unsuccessful_payment(bot, user_id, get_asyn
 
 
 async def notification_five_days_after_unsuccessful_payment(bot, user_id, get_async_session):
+    """
+           Notification after a failed payment attempt
+       """
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=user_id, session=session)
     if not user.is_active:

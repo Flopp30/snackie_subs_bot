@@ -1,3 +1,6 @@
+"""
+Task crud
+"""
 from typing import Sequence
 
 from sqlalchemy import select
@@ -18,7 +21,7 @@ class CRUDTask(CRUDBase):
             session: AsyncSession,
     ) -> Sequence[Tasks]:
         """
-        Returns tasks by it's id value.
+        Returns tasks by user id value.
         """
         db_obj = await session.execute(
             select(self.model).where(
@@ -29,7 +32,10 @@ class CRUDTask(CRUDBase):
         )
         return db_obj.scalars().all()
 
-    async def mark_as_done_payment_process_task_by_user_id(self, user_id, session):
+    async def mark_as_done_payment_process_tasks_by_user_id(self, user_id, session: AsyncSession):
+        """
+            Mark as done tasks by user id value
+        """
         tasks = await self.get_active_payment_process_tasks_by_user_id(user_id, session)
         for task in tasks:
             task.status = 'done'

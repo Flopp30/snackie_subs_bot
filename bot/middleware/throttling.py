@@ -8,6 +8,9 @@ from bot.text_for_messages import TEXT_SPAM_MESSAGE
 
 
 class ThrottlingMiddleware(BaseMiddleware):
+    """
+        Throttling middleware. (antispam)
+    """
     def __init__(self, storage: RedisStorage):
         self.storage = storage
 

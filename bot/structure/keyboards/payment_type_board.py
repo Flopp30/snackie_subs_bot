@@ -1,7 +1,6 @@
-import logging
-
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from bot.db.crud import sub_crud
 from bot.structure import PaymentTypeStates
 

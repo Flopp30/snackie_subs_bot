@@ -1,31 +1,43 @@
 import csv
 import datetime
-import logging
 import tempfile
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.crud import user_crud, payment_crud
+from bot.utils import CustomCounter
 
 
 async def get_user_stat(session: AsyncSession) -> (str, bytes):
     """
-    Gather stat by users
+        Gather stat by users
     """
-    users = await user_crud.get_multi(session)
-    user_report_message = ("Всего пользователей: {len_user}\n"
-                           "Подписанных пользователей: {len_active_user}\n"
-                           "Недельки: {sub_week_count}\n"
-                           "Месяц: {sub_month_count}\n"
-                           "3 месяца: {sub_three_month_count}\n"
-                           "Год (вряд ли, конечно, но чисто по фану): {sub_year_count}\n"
-                           "Недельки, которые продлили: {week_sub_renewal_count}")
-    len_active_user = 0
-    sub_week_count = 0
-    sub_month_count = 0
-    sub_three_month_count = 0
-    sub_year_count = 0
-    week_sub_renewal_count = 0
+    users = await user_crud.get_multi(session=session)
+    user_report_message = (
+        "Всего пользователей: {len_users}\n"
+        "Подписанных пользователей: {active_users}\n"
+        "Недельки: {sub_week_count}\n"
+        "Месяц: {sub_month_count}\n"
+        "3 месяца: {sub_three_month_count}\n"
+        "Год (вряд ли, конечно, но чисто по фану): {sub_year_count}\n"
+        "Недельки, которые продлили: {week_sub_renewal_count}"
+    )
+    counters = {
+        "len_users": len(users),
+        "active_users": CustomCounter(),
+        "sub_week_count": CustomCounter(),
+        "sub_month_count": CustomCounter(),
+        "sub_three_month_count": CustomCounter(),
+        "sub_year_count": CustomCounter(),
+        "week_sub_renewal_count": CustomCounter(),
+    }
+
+    subscription_counts = {
+        "7 дней": "sub_week_count",
+        "1 месяц": "sub_month_count",
+        "3 месяца": "sub_three_month_count",
+        "1 год": "sub_year_count",
+    }
 
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as csvfile:
         csv_filename = csvfile.name
@@ -45,15 +57,19 @@ async def get_user_stat(session: AsyncSession) -> (str, bytes):
             ])
 
         for idx, user in enumerate(users):
-            len_active_user += 1 if user.is_active else 0
             if user.subscription:
-                sub_week_count += 1 if user.subscription.payment_name == "7 дней" else 0
-                sub_month_count += 1 if user.subscription.payment_name == "1 месяц" else 0
-                sub_three_month_count += 1 if user.subscription.payment_name == "3 месяца" else 0
-                sub_year_count += 1 if user.subscription.payment_name == "1 год" else 0
+                counters["active_users"].increment()
+
+                if name_counters := subscription_counts.get(user.subscription.payment_name):
+                    counters[name_counters].increment()
+
                 if len(user.payments) > 1:
-                    week_sub_renewal_count = sum(
-                        1 for payment in user.payments if payment.payment_amount == 490)
+                    payments_statuses = [payment.status for payment in user.payments]
+                    payments_amounts = [payment.payment_amount for payment in user.payments]
+
+                    if payments_statuses.count("succeeded") > 1 and 490 in payments_amounts:
+                        counters["week_sub_renewal_count"].increment()
+
             writer.writerow(
                 [
                     idx + 1,
@@ -61,31 +77,25 @@ async def get_user_stat(session: AsyncSession) -> (str, bytes):
                     user.username,
                     user.is_active,
                     user.first_sub_date.strftime('%d.%m.%Y') if user.first_sub_date else '',
-                    user.unsubscribe_date.strftime('%d.%m.%Y') if user.first_sub_date else '',
+                    user.unsubscribe_date.strftime('%d.%m.%Y') if user.unsubscribe_date else '',
                     user.subscription.payment_name if user.subscription else "Non sub",
                     len(user.payments),
-                    sum(payment.payment_amount for payment in user.payments) if user.payments else 0,
+                    sum(payment.payment_amount for payment in user.payments
+                        if payment.status == 'succeeded') if user.payments else 0,
                 ])
 
     with open(csv_filename, 'rb') as csvfile:
         file_content = csvfile.read()
+
     user_report_message = user_report_message.format(
-        len_user=len(users),
-        len_active_user=len_active_user,
-        sub_week_count=sub_week_count,
-        sub_month_count=sub_month_count,
-        sub_three_month_count=sub_three_month_count,
-        sub_year_count=sub_year_count,
-        week_sub_renewal_count=week_sub_renewal_count,
+        **counters
     )
     return user_report_message, file_content
 
 
 async def get_payment_stat(session: AsyncSession) -> (str, bytes):
     """
-    Gather stat by payments
-    :param session:
-    :return:
+        Gather stat by payments
     """
     date_now = datetime.datetime.now()
     will_be_paid = 0

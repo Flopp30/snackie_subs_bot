@@ -28,4 +28,3 @@ builder.button(
 builder.adjust(1)
 
 USER_GROUPS_BOARD = builder.as_markup()
-
