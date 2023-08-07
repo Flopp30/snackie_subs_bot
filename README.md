@@ -67,7 +67,7 @@
    
    version_path_separator = os # Use os.pathsep. Default configuration used for new projects.
    
-   sqlalchemy.url = postgresql+asyncpg://admin:password@postgres_db:5432/subs_bot
+   sqlalchemy.url = postgresql+asyncpg://admin:password@postgres_db:5433/subs_bot
    
    [post_write_hooks]
    
