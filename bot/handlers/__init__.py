@@ -78,3 +78,4 @@ def register_user_commands(router: Router) -> None:
 
 async def handle_unknown_message(message: types.Message):
     await message.answer(TEXT_UNKNOWN_MESSAGE)
+
