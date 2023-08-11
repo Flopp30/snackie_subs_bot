@@ -1,7 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError
@@ -14,7 +14,8 @@ from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
 from bot.settings import TG_BOT_URL
 from bot.structure import UserGroupsCD
-from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL
+from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL, TEXT_ENTER_CORRECT_SALES_DATES
+from bot.db.crud import sales_crud
 
 
 async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials: bool = True) -> str:
@@ -71,9 +72,8 @@ async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
             res += ", "
 
     res = res.rstrip(", ")
-    if not res:
-        return res
-    res = "Ты с нами уже: " + res + " 🏆"
+    if res:
+        res = "Ты с нами уже: " + res + " 🏆"
     return res
 
 
@@ -188,3 +188,58 @@ async def bot_send_message(
     else:
         if count_success:
             count_success.increment()
+
+
+def parse_dates(entered_dates: str) -> tuple[datetime | None, datetime | None]:
+    try:
+        start_date, end_date = entered_dates.strip().split(' - ')
+        start_date = datetime.strptime(start_date, '%d.%m.%Y')
+        end_date = datetime.strptime(end_date, '%d.%m.%Y')
+    except ValueError:
+        start_date, end_date = None, None
+    return start_date, end_date
+
+
+def is_correct_period(start_date: datetime, end_date: datetime) -> bool:
+    return (end_date - start_date) >= timedelta(days=1)
+
+
+def is_in_future(end_date: datetime) -> bool:
+    return end_date > datetime.now()
+
+
+async def has_intersections(
+    start_date: datetime,
+    end_date: datetime,
+    session: AsyncSession
+) -> bool:
+    active_sales = await sales_crud.get_active_sales(session)
+    for sale in active_sales:
+        if (sale.sales_start <= start_date <= sale.sales_finish
+            or (sale.sales_start <= end_date <= sale.sales_finish)
+            or (sale.sales_start >= start_date and sale.sales_finish <= end_date)):
+            return True
+    return False
+
+
+async def check_dates(
+    entered_dates: str,
+    session: AsyncSession
+) -> tuple[datetime | None, datetime | None, str]:
+    error = ""
+    start_date, end_date = parse_dates(entered_dates)
+    if not all((start_date, end_date)):
+        error = ('Формат введенных дат некорректен.\n'
+                 + TEXT_ENTER_CORRECT_SALES_DATES)
+    elif not is_correct_period(start_date, end_date):
+        error = ('Введенный период некорректен.\n'
+                 'Минимальная продолжительность продаж - 1 день.\n'
+                 + TEXT_ENTER_CORRECT_SALES_DATES)
+    elif not is_in_future(end_date):
+        error = ('Введенный период некорректен.\n'
+                 'Дата окончания продаж должна быть в будущем.\n'
+                 + TEXT_ENTER_CORRECT_SALES_DATES)
+    elif await has_intersections(start_date, end_date, session):
+        error = ('Введенный период пересекается с уже существующим периодом продаж.\n'
+                 + TEXT_ENTER_CORRECT_SALES_DATES)
+    return start_date, end_date, error

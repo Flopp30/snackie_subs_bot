@@ -2,6 +2,7 @@
 admins handlers
 """
 import asyncio
+from datetime import datetime
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
@@ -10,10 +11,12 @@ from sqlalchemy.orm import sessionmaker
 
 from bot.handlers import start
 from bot.structure import AdminsCDAction, AdminsCallBack, SendMessageState, UserGroupsCallBack, UserGroupsCD, \
-    SendMessageCallBack, SendMessageActionsCD, GROUP_NAMES
-from bot.structure.keyboards import USER_GROUPS_BOARD, SEND_MESSAGE_ACCEPT_BOARD
-from bot.utils import get_users_by_group, bot_send_message, CustomCounter
+    SendMessageCallBack, ConfirmationCallBack, SendMessageActionsCD, CreateSaleState, RemoveSaleState, GROUP_NAMES
+from bot.structure.keyboards import USER_GROUPS_BOARD, SEND_MESSAGE_ACCEPT_BOARD, CONFIRMATION_BOARD, ADMIN_BOARD
+from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES
+from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates
 from bot.utils.statistic import get_user_stat, get_payment_stat
+from bot.db.crud import sales_crud
 
 
 async def admin_start(
@@ -47,6 +50,30 @@ async def admin_start(
         elif callback_data.action == AdminsCDAction.SEND_MESSAGE:  # Sending message for user's groups
             await state.set_state(SendMessageState.waiting_for_select_group)  # set state - waiting for group
             await callback_query.message.answer('Выбери группу', reply_markup=USER_GROUPS_BOARD)
+
+        elif callback_data.action == AdminsCDAction.STOP_SALE:
+            active_sales = await sales_crud.get_active_sales(session=session)
+            current_sale = None
+            if active_sales:
+                for sale in active_sales:
+                    if sale.sales_start <= datetime.now() <= sale.sales_finish:
+                        current_sale = sale
+                        break
+                if current_sale:
+                    await state.set_state(RemoveSaleState.waiting_for_confirm)
+                    await state.update_data(sale_id=current_sale.id)
+                    await callback_query.message.answer(
+                        f'Ты действительно хочешь остановить продажи в период '
+                        f'{current_sale.sales_start:%d-%m-%Y} - {current_sale.sales_finish:%d-%m-%Y}?',
+                        reply_markup=CONFIRMATION_BOARD
+                    )
+
+            if not active_sales or not current_sale:
+                await callback_query.message.answer('Сейчас нет продаж')
+
+        elif callback_data.action == AdminsCDAction.CREATE_NEW_SALE:
+            await state.set_state(CreateSaleState.waiting_for_dates)
+            await callback_query.message.answer(TEXT_ENTER_NEW_SALES_DATES)
 
 
 async def send_message_start(
@@ -168,3 +195,97 @@ async def send_messages_final(
                         AdminsCallBack(action=AdminsCDAction.SEND_MESSAGE),
                         state,
                     )
+
+
+async def create_sale_enter_dates(
+        message: types.Message,
+        get_async_session: sessionmaker,
+        state: FSMContext,
+) -> None:
+    """
+    Enter new sales dates handler
+    """
+    if message.text.lower() == "отмена":
+        await state.clear()
+        await message.answer('Операция отменена')
+        await message.answer(
+        text="Административная часть",
+        reply_markup=ADMIN_BOARD,
+    )
+    else:
+        async with get_async_session() as session:
+            start_date, end_date, error = await check_dates(message.text, session)
+        if error:
+            await message.answer(error)
+        else:
+            await state.update_data(start_date=str(start_date), end_date=str(end_date))
+            await state.set_state(CreateSaleState.waiting_for_confirm)
+            await message.answer(
+                f'Подтверди период продаж: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y}',
+                reply_markup=CONFIRMATION_BOARD
+            )
+
+async def create_sale_confirmation(
+    callback_query: types.CallbackQuery,
+    callback_data: ConfirmationCallBack,
+    get_async_session: sessionmaker,
+    state: FSMContext,
+    ) -> None:
+    """
+    Confirm new sales dates handler
+    """
+    if callback_data.action == 'confirm':
+        async with get_async_session() as session:
+            dates = await state.get_data()
+            sales_start = datetime.fromisoformat(dates.get('start_date'))
+            sales_finish = datetime.fromisoformat(dates.get('end_date'))
+            await sales_crud.create(
+                obj_in_data={
+                    'sales_start': sales_start,
+                    'sales_finish': sales_finish,
+                    'is_active': True
+                },
+                session=session
+            )
+            await callback_query.message.answer(
+                f'Период продаж {sales_start:%d.%m.%Y} - {sales_finish:%d.%m.%Y} сохранен'
+            )
+    else:
+        await callback_query.message.answer('Операция отменена')
+    await state.clear()
+    await callback_query.message.answer(
+        text="Административная часть",
+        reply_markup=ADMIN_BOARD,
+    )
+
+
+async def remove_active_sale_confirmation(
+    callback_query: types.CallbackQuery,
+    callback_data: ConfirmationCallBack,
+    get_async_session: sessionmaker,
+    state: FSMContext,
+    ) -> None:
+    """
+    Confirm current sale remove handler
+    """
+    if callback_data.action == 'confirm':
+        async with get_async_session() as session:
+            data = await state.get_data()
+            current_sale_id = data.get('sale_id')
+            current_sale = await sales_crud.get_by_id(current_sale_id, session)
+            await sales_crud.update(current_sale, {'is_active': False}, session)
+            await callback_query.message.answer(
+                f'Продажи в период '
+                f'{current_sale.sales_start:%d.%m.%Y} - {current_sale.sales_finish:%d.%m.%Y} '
+                f'остановлены.'
+            )
+    else:
+        await callback_query.message.answer('Операция отменена')
+
+    await state.clear()
+    await callback_query.message.answer(
+        text="Административная часть",
+        reply_markup=ADMIN_BOARD,
+    )
+
+

@@ -8,8 +8,11 @@ __all__ = [
     "GROUP_NAMES",
     "UserGroupsCallBack",
     "SendMessageState",
+    "CreateSaleState",
     "SendMessageCallBack",
     "SendMessageActionsCD",
+    "ConfirmationCallBack",
+    "RemoveSaleState",
 ]
 
 
@@ -23,6 +26,7 @@ from bot.structure.callback_data_states import (
     UserGroupsCallBack,
     SendMessageCallBack,
     SendMessageActionsCD,
+    ConfirmationCallBack,
     GROUP_NAMES,
 )
-from bot.structure.fsm_groups import SendMessageState
+from bot.structure.fsm_groups import SendMessageState, CreateSaleState, RemoveSaleState

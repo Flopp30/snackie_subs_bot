@@ -25,6 +25,8 @@ class AdminsCDAction(enum.IntEnum):
     USER_STAT = 0
     PAYMENT_STAT = 1
     SEND_MESSAGE = 2
+    STOP_SALE = 3
+    CREATE_NEW_SALE = 4
 
 
 class AdminsCallBack(CallbackData, prefix="statistic"):
@@ -79,3 +81,10 @@ class SendMessageCallBack(CallbackData, prefix="send_messages"):
     Send message callback
     """
     action: SendMessageActionsCD
+
+
+class ConfirmationCallBack(CallbackData, prefix="confirmation"):
+    """
+    Reusable confirmation callback
+    """
+    action: str  # confirm / cancel
