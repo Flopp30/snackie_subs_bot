@@ -30,5 +30,16 @@ class CRUDSales(CRUDBase):
         )
         return bool(db_obj.scalars().first())
 
+    async def get_active_sales(
+        self,
+        session: AsyncSession,
+    ) -> list[SalesDate]:
+        db_objs = await session.execute(
+            select(self.model).where(
+                (self.model.is_active)
+            )
+        )
+        return db_objs.scalars().all()
+
 
 sales_crud = CRUDSales(SalesDate)

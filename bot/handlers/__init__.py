@@ -7,12 +7,12 @@ from aiogram.filters import CommandStart, Command
 from bot.handlers.help import help_command, help_func
 from bot.handlers.start import start
 from bot.handlers.administration import admin_start, send_messages_enter_a_text, send_message_confirmation, \
-    send_messages_final
+    send_messages_final, create_sale_enter_dates, create_sale_confirmation, remove_active_sale_confirmation
 from bot.handlers.subscription import subscription_start, send_subscribe_invoice
 from bot.handlers.unsubscribtion import unsubscription_start, unsub_process
 from bot.middleware import RegisterCheck
 from bot.structure import StartStates, PaymentTypeStates, UnsubStates, AdminsCallBack, SendMessageState, \
-    UserGroupsCallBack, SendMessageCallBack
+    UserGroupsCallBack, SendMessageCallBack, CreateSaleState, ConfirmationCallBack, RemoveSaleState
 from bot.text_for_messages import TEXT_UNKNOWN_MESSAGE
 
 __all__ = [
@@ -47,6 +47,19 @@ def register_user_commands(router: Router) -> None:
         SendMessageState.waiting_for_confirm
     )
 
+    router.message.register(create_sale_enter_dates, CreateSaleState.waiting_for_dates)
+    router.callback_query.register(
+        create_sale_confirmation,
+        ConfirmationCallBack.filter(),
+        CreateSaleState.waiting_for_confirm
+    )
+
+    router.callback_query.register(
+        remove_active_sale_confirmation,
+        ConfirmationCallBack.filter(),
+        RemoveSaleState.waiting_for_confirm
+    )
+
     # help
     router.message.register(help_command, Command(commands=["help"]))
     router.message.register(help_func, F.text.capitalize() == "Помощь")
@@ -65,3 +78,4 @@ def register_user_commands(router: Router) -> None:
 
 async def handle_unknown_message(message: types.Message):
     await message.answer(TEXT_UNKNOWN_MESSAGE)
+

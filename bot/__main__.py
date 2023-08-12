@@ -29,6 +29,7 @@ async def async_main() -> None:
     bot = Bot(token=TG_BOT_KEY)
     redis = Redis(host=REDIS_HOST)
     storage = RedisStorage(redis)
+
     dp = Dispatcher(storage=storage)
 
     # handlers

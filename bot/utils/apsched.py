@@ -200,8 +200,7 @@ async def auto_payment_process(
                     # delete message with payment board after that
                     delete_message_with_payment_board_after_24_hours,
                     trigger=DateTrigger(
-                        run_date=datetime.datetime.now() + datetime.timedelta(days=1, hours=3) + datetime.timedelta(
-                            hours=3)),
+                        run_date=datetime.datetime.now() + datetime.timedelta(days=1, hours=3)),
                     kwargs={
                         "message_id": message_for_deleting.message_id,
                         "user_id": user.id,
