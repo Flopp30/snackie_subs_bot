@@ -2,24 +2,16 @@
 admins handlers
 """
 import asyncio
-import json
 from datetime import datetime
 
-import aiohttp
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile
 from sqlalchemy.orm import sessionmaker
 
+from bot.db.crud import sales_crud, user_crud
 from bot.handlers import start
- 
-from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES, TEXT_ENTER_DEACTIVATE_SALE
-from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates, get_active_sales_text, \
-    check_dates_for_remove
-from bot.utils.statistic import get_user_stat, get_payment_stat, get_sales_dates_info
-from bot.db.crud import sales_crud
-
-from bot.settings import OWNED_BOTS, HEADERS
+from bot.settings import OWNED_BOTS
 from bot.structure import (
     AdminsCDAction,
     AdminsCallBack,
@@ -40,14 +32,13 @@ from bot.structure.keyboards import (
     USER_GROUPS_BOARD,
     SEND_MESSAGE_ACCEPT_BOARD,
     CONFIRMATION_BOARD,
-    ADMIN_BOARD, 
+    ADMIN_BOARD,
     BOT_SELECTION_BOARD
 )
-from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES
-from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates, process_action_in_owned_bots
-from bot.utils.statistic import get_user_stat, get_payment_stat
-from bot.db.crud import sales_crud, user_crud
-
+from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES, TEXT_ENTER_DEACTIVATE_SALE
+from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates, get_active_sales_text, \
+    check_dates_for_remove, process_action_in_owned_bots
+from bot.utils.statistic import get_user_stat, get_payment_stat, get_sales_dates_info
 
 
 async def admin_start(
@@ -97,7 +88,6 @@ async def admin_start(
             await state.set_state(CreateSaleState.waiting_for_dates)
             await callback_query.message.answer(TEXT_ENTER_NEW_SALES_DATES)
 
-
         elif callback_data.action == AdminsCDAction.GET_SALE_DATES_LIST:
             text = await get_active_sales_text(session)
             csv_file = await get_sales_dates_info(session)
@@ -115,6 +105,7 @@ async def admin_start(
                 'Выбери бота',
                 reply_markup=BOT_SELECTION_BOARD
             )
+
 
 async def send_message_start(
         message: types.Message,
@@ -409,9 +400,9 @@ async def remove_sale_enter_dates(
         await state.clear()
         await message.answer('Операция отменена')
         await message.answer(
-        text="Административная часть",
-        reply_markup=ADMIN_BOARD,
-    )
+            text="Административная часть",
+            reply_markup=ADMIN_BOARD,
+        )
     else:
         async with get_async_session() as session:
             sale_id, start_date, end_date, error = await check_dates_for_remove(
@@ -433,11 +424,11 @@ async def remove_sale_enter_dates(
 
 
 async def remove_sale_confirmation(
-    callback_query: types.CallbackQuery,
-    callback_data: ConfirmationCallBack,
-    get_async_session: sessionmaker,
-    state: FSMContext,
-    ) -> None:
+        callback_query: types.CallbackQuery,
+        callback_data: ConfirmationCallBack,
+        get_async_session: sessionmaker,
+        state: FSMContext,
+) -> None:
     """
     Confirm current sale remove handler
     """

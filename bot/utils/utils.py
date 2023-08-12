@@ -14,14 +14,14 @@ from yookassa import Payment as Yoo_Payment
 from bot.db.crud import sales_crud
 from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
-from bot.settings import TG_BOT_URL
-from bot.structure import UserGroupsCD
-from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL, TEXT_ENTER_CORRECT_SALES_DATES, \
-    TEXT_ENTER_DEACTIVATE_SALE
-from bot.db.crud import sales_crud
 from bot.settings import TG_BOT_URL, HEADERS, OwnedBot
 from bot.structure import UserGroupsCD, AdminsCDAction
-from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL, TEXT_ENTER_CORRECT_SALES_DATES
+from bot.text_for_messages import (
+    TEXT_TARIFFS,
+    TEXT_TARIFFS_DETAIL,
+    TEXT_ENTER_CORRECT_SALES_DATES,
+    TEXT_ENTER_DEACTIVATE_SALE
+)
 
 
 async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials: bool = True) -> str:
@@ -232,9 +232,9 @@ async def has_intersections(
 
 
 async def sales_dates_exists(
-    start_date: datetime,
-    end_date: datetime,
-    session: AsyncSession
+        start_date: datetime,
+        end_date: datetime,
+        session: AsyncSession
 ) -> int | None:
     active_sales = await sales_crud.get_active_sales(session)
     for sale in active_sales:
@@ -250,36 +250,30 @@ async def check_dates(
     error = ""
     start_date, end_date = parse_dates(entered_dates)
     if not all((start_date, end_date)):
-        error = ('Формат введенных дат некорректен.\n'
-                 + TEXT_ENTER_CORRECT_SALES_DATES)
+        error = (f'Формат введенных дат некорректен.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
     elif not is_correct_period(start_date, end_date):
         error = ('Введенный период некорректен.\n'
-                 'Минимальная продолжительность продаж - 1 день.\n'
-                 + TEXT_ENTER_CORRECT_SALES_DATES)
+                 f'Минимальная продолжительность продаж - 1 день.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
     elif not is_in_future(end_date):
         error = ('Введенный период некорректен.\n'
-                 'Дата окончания продаж должна быть в будущем.\n'
-                 + TEXT_ENTER_CORRECT_SALES_DATES)
+                 f'Дата окончания продаж должна быть в будущем.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
     elif await has_intersections(start_date, end_date, session):
-        error = ('Введенный период пересекается с уже существующим периодом продаж.\n'
-                 + TEXT_ENTER_CORRECT_SALES_DATES)
+        error = (f'Введенный период пересекается с уже существующим периодом продаж.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
     return start_date, end_date, error
 
 
 async def check_dates_for_remove(
-    entered_dates: str,
-    session: AsyncSession
+        entered_dates: str,
+        session: AsyncSession
 ) -> tuple[int | None, datetime | None, datetime | None, str]:
     sale_id, error = None, ""
     start_date, end_date = parse_dates(entered_dates)
     if not all((start_date, end_date)):
-        error = ('Формат введенных дат некорректен.\n'
-                 + TEXT_ENTER_DEACTIVATE_SALE)
+        error = (f'Формат введенных дат некорректен.\n{TEXT_ENTER_DEACTIVATE_SALE}')
     else:
         sale_id = await sales_dates_exists(start_date, end_date, session)
         if not sale_id:
-            error = ('Активной акции с указанными датами не найдено.\n'
-                 + TEXT_ENTER_DEACTIVATE_SALE)
+            error = (f'Активной акции с указанными датами не найдено.\n{TEXT_ENTER_DEACTIVATE_SALE}')
 
     return sale_id, start_date, end_date, error
 
@@ -295,7 +289,8 @@ async def get_active_sales_text(session: AsyncSession) -> str:
     for idx, sale in enumerate(active_sales):
         text += f'{idx + 1}. {sale.sales_start:%d.%m.%Y} - {sale.sales_finish:%d.%m.%Y}\n'
     return text
-  
+
+
 async def process_action_in_owned_bots(
         owned_bot: OwnedBot,
         action: AdminsCDAction,
