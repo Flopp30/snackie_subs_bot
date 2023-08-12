@@ -14,6 +14,11 @@ from yookassa import Payment as Yoo_Payment
 from bot.db.crud import sales_crud
 from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
+from bot.settings import TG_BOT_URL
+from bot.structure import UserGroupsCD
+from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL, TEXT_ENTER_CORRECT_SALES_DATES, \
+    TEXT_ENTER_DEACTIVATE_SALE
+from bot.db.crud import sales_crud
 from bot.settings import TG_BOT_URL, HEADERS, OwnedBot
 from bot.structure import UserGroupsCD, AdminsCDAction
 from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL, TEXT_ENTER_CORRECT_SALES_DATES
@@ -226,6 +231,18 @@ async def has_intersections(
     return False
 
 
+async def sales_dates_exists(
+    start_date: datetime,
+    end_date: datetime,
+    session: AsyncSession
+) -> int | None:
+    active_sales = await sales_crud.get_active_sales(session)
+    for sale in active_sales:
+        if sale.sales_start == start_date and sale.sales_finish == end_date:
+            return sale.id
+    return None
+
+
 async def check_dates(
         entered_dates: str,
         session: AsyncSession
@@ -249,6 +266,36 @@ async def check_dates(
     return start_date, end_date, error
 
 
+async def check_dates_for_remove(
+    entered_dates: str,
+    session: AsyncSession
+) -> tuple[int | None, datetime | None, datetime | None, str]:
+    sale_id, error = None, ""
+    start_date, end_date = parse_dates(entered_dates)
+    if not all((start_date, end_date)):
+        error = ('Формат введенных дат некорректен.\n'
+                 + TEXT_ENTER_DEACTIVATE_SALE)
+    else:
+        sale_id = await sales_dates_exists(start_date, end_date, session)
+        if not sale_id:
+            error = ('Активной акции с указанными датами не найдено.\n'
+                 + TEXT_ENTER_DEACTIVATE_SALE)
+
+    return sale_id, start_date, end_date, error
+
+
+async def get_active_sales_text(session: AsyncSession) -> str:
+    """
+        Get text with active sales info
+    """
+    active_sales = await sales_crud.get_active_sales(session=session)
+    if not active_sales:
+        return 'Нет запланированных периодов продаж'
+    text = 'Запланированные периоды продаж:\n'
+    for idx, sale in enumerate(active_sales):
+        text += f'{idx + 1}. {sale.sales_start:%d.%m.%Y} - {sale.sales_finish:%d.%m.%Y}\n'
+    return text
+  
 async def process_action_in_owned_bots(
         owned_bot: OwnedBot,
         action: AdminsCDAction,

@@ -37,7 +37,7 @@ class CRUDSales(CRUDBase):
         db_objs = await session.execute(
             select(self.model).where(
                 (self.model.is_active)
-            )
+            ).order_by(self.model.sales_start)
         )
         return db_objs.scalars().all()
 

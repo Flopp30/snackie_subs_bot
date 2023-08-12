@@ -25,10 +25,12 @@ class AdminsCDAction(enum.IntEnum):
     USER_STAT = 0
     PAYMENT_STAT = 1
     SEND_MESSAGE = 2
-    BAN_USER_IN_OWNED_BOT = 3
-    UNBAN_USER_IN_OWNED_BOT = 4
-    STOP_SALE = 5
+    STOP_SALE = 3
+    CREATE_NEW_SALE = 4
+    GET_SALE_DATES_LIST = 5
     CREATE_NEW_SALE = 6
+    BAN_USER_IN_OWNED_BOT = 7
+    UNBAN_USER_IN_OWNED_BOT = 8
 
 
 class AdminsCallBack(CallbackData, prefix="statistic"):
