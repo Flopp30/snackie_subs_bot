@@ -13,8 +13,8 @@ from sqlalchemy.engine.url import URL
 logger: Logger = logging.getLogger()
 
 logger.setLevel(logging.WARNING)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler = RotatingFileHandler('log.log', maxBytes=2097152, backupCount=1000)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler = RotatingFileHandler("log.log", maxBytes=2097152, backupCount=1000)
 file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
@@ -44,7 +44,7 @@ POSTGRES_URL = URL.create(
     database=DB_NAME,
 )
 
-REDIS_HOST = os.getenv("REDIS_HOST", '0.0.0.0')
+REDIS_HOST = os.getenv("REDIS_HOST", "0.0.0.0")
 
 # TG
 TG_BOT_KEY = os.getenv("TG_BOT_KEY")
@@ -66,8 +66,9 @@ INTERVAL_FOR_CHECKING_PAYMENT_SEC = 5
 
 
 class OwnedBot:
-    def __init__(self, name: str, api_token: str, tg_chat_id: int) -> None:
+    def __init__(self, name: str, api_token: str, tg_chat_id: int, rus_name: str = None) -> None:
         self.name = name
+        self.rus_name = rus_name
         self.api_token = api_token
         self.tg_chat_id = tg_chat_id
 
@@ -98,6 +99,7 @@ OWNED_BOTS = []
 if WORKOUT_BOT_API_KEY:
     WORKOUT_BOT = OwnedBot(
         name="Workout bot",
+        rus_name="Зал для начинающих",
         api_token=WORKOUT_BOT_API_KEY,
         tg_chat_id=WORKOUT_BOT_CHAT_ID
     )
@@ -106,6 +108,7 @@ if WORKOUT_BOT_API_KEY:
 if ROOKIE_BOT_API_KEY:
     ROOKIE_BOT = OwnedBot(
         name="Rookie bot",
+        rus_name="Тренировки с гантелями дом/зал",
         api_token=ROOKIE_BOT_API_KEY,
         tg_chat_id=ROOKIE_BOT_CHAT_ID
     )
@@ -114,6 +117,7 @@ if ROOKIE_BOT_API_KEY:
 if PRO_WORKOUT_BOT_API_KEY:
     PRO_WORKOUT_BOT = OwnedBot(
         name="Pro workout bot",
+        rus_name="Зал для уверенных",
         api_token=PRO_WORKOUT_BOT_API_KEY,
         tg_chat_id=PRO_WORKOUT_BOT_CHAT_ID
     )
@@ -122,6 +126,7 @@ if PRO_WORKOUT_BOT_API_KEY:
 if BANDS_BOT_API_KEY:
     BANDS_BOT = OwnedBot(
         name="Bands bot",
+        rus_name="Тренировки с резинками",
         api_token=BANDS_BOT_API_KEY,
         tg_chat_id=BANDS_BOT_CHAT_ID,
     )

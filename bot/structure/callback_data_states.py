@@ -25,6 +25,11 @@ class AdminsCDAction(enum.IntEnum):
     USER_STAT = 0
     PAYMENT_STAT = 1
     SEND_MESSAGE = 2
+    STOP_SALE = 3
+    CREATE_NEW_SALE = 4
+    GET_SALE_DATES_LIST = 5
+    BAN_USER_IN_OWNED_BOT = 6
+    UNBAN_USER_IN_OWNED_BOT = 7
 
 
 class AdminsCallBack(CallbackData, prefix="statistic"):
@@ -32,6 +37,24 @@ class AdminsCallBack(CallbackData, prefix="statistic"):
         Admins callback
     """
     action: AdminsCDAction
+
+
+class SelectionBotsCD(enum.StrEnum):
+    """
+        Bot selection enum
+    """
+    WORKOUT_BOT = "Workout bot"
+    PRO_WORKOUT_BOT = "Pro workout bot"
+    ROOKIE_BOT = "Rookie bot"
+    BANDS_BOT = "Bands bot"
+    ALL = "All"
+
+
+class BotSelectionCallBack(CallbackData, prefix="owned_bot"):
+    """
+        Bot selection callback
+    """
+    bot: SelectionBotsCD
 
 
 class UserGroupsCD(enum.IntEnum):
@@ -79,3 +102,10 @@ class SendMessageCallBack(CallbackData, prefix="send_messages"):
     Send message callback
     """
     action: SendMessageActionsCD
+
+
+class ConfirmationCallBack(CallbackData, prefix="confirmation"):
+    """
+    Reusable confirmation callback
+    """
+    action: str  # confirm / cancel

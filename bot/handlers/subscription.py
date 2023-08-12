@@ -92,7 +92,6 @@ async def send_subscribe_invoice(
             'job_id': job.id,
         }, session=session)
 
-    await asyncio.sleep(0.5)
     await asyncio.gather(*[process_task(task, job, bot, user_id, get_async_session) for task in tasks])
     # kill others active tasks exclude current
 

@@ -1,20 +1,27 @@
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Bot
+from aiogram.client.session import aiohttp
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.context import FSMContext
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from yookassa import Payment as Yoo_Payment
 
+from bot.db.crud import sales_crud
 from bot.db.crud import sub_crud, user_crud
 from bot.db.models import Subscription, User
-from bot.settings import TG_BOT_URL
-from bot.structure import UserGroupsCD
-from bot.text_for_messages import TEXT_TARIFFS, TEXT_TARIFFS_DETAIL
+from bot.settings import TG_BOT_URL, HEADERS, OwnedBot
+from bot.structure import UserGroupsCD, AdminsCDAction
+from bot.text_for_messages import (
+    TEXT_TARIFFS,
+    TEXT_TARIFFS_DETAIL,
+    TEXT_ENTER_CORRECT_SALES_DATES,
+    TEXT_ENTER_DEACTIVATE_SALE
+)
 
 
 async def get_tariffs_text(session: AsyncSession, state: FSMContext, with_trials: bool = True) -> str:
@@ -71,9 +78,8 @@ async def get_beautiful_sub_date(first_sub_date: datetime) -> str | None:
             res += ", "
 
     res = res.rstrip(", ")
-    if not res:
-        return res
-    res = "Ты с нами уже: " + res + " 🏆"
+    if res:
+        res = "Ты с нами уже: " + res + " 🏆"
     return res
 
 
@@ -155,6 +161,7 @@ class CustomCounter:
     """
     Custom counter class
     """
+
     def __init__(self, init_value: int = 0):
         self.count = init_value
 
@@ -188,3 +195,125 @@ async def bot_send_message(
     else:
         if count_success:
             count_success.increment()
+
+
+def parse_dates(entered_dates: str) -> tuple[datetime | None, datetime | None]:
+    try:
+        start_date, end_date = entered_dates.strip().split('-')
+        start_date = datetime.strptime(start_date.strip(), '%d.%m.%Y')
+        end_date = datetime.strptime(end_date.strip(), '%d.%m.%Y')
+    except ValueError:
+        start_date, end_date = None, None
+    return start_date, end_date
+
+
+def is_correct_period(start_date: datetime, end_date: datetime) -> bool:
+    return (end_date - start_date) >= timedelta(days=1)
+
+
+def is_in_future(end_date: datetime) -> bool:
+    return end_date > datetime.now()
+
+
+async def has_intersections(
+        start_date: datetime,
+        end_date: datetime,
+        session: AsyncSession
+) -> bool:
+    active_sales = await sales_crud.get_active_sales(session)
+    for sale in active_sales:
+        if (
+                (sale.sales_start <= start_date <= sale.sales_finish)
+                or (sale.sales_start <= end_date <= sale.sales_finish)
+                or (sale.sales_start >= start_date and sale.sales_finish <= end_date)
+        ):
+            return True
+    return False
+
+
+async def sales_dates_exists(
+        start_date: datetime,
+        end_date: datetime,
+        session: AsyncSession
+) -> int | None:
+    active_sales = await sales_crud.get_active_sales(session)
+    for sale in active_sales:
+        if sale.sales_start == start_date and sale.sales_finish == end_date:
+            return sale.id
+    return None
+
+
+async def check_dates(
+        entered_dates: str,
+        session: AsyncSession
+) -> tuple[datetime | None, datetime | None, str]:
+    error = ""
+    start_date, end_date = parse_dates(entered_dates)
+    if not all((start_date, end_date)):
+        error = (f'Формат введенных дат некорректен.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
+    elif not is_correct_period(start_date, end_date):
+        error = ('Введенный период некорректен.\n'
+                 f'Минимальная продолжительность продаж - 1 день.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
+    elif not is_in_future(end_date):
+        error = ('Введенный период некорректен.\n'
+                 f'Дата окончания продаж должна быть в будущем.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
+    elif await has_intersections(start_date, end_date, session):
+        error = (f'Введенный период пересекается с уже существующим периодом продаж.\n{TEXT_ENTER_CORRECT_SALES_DATES}')
+    return start_date, end_date, error
+
+
+async def check_dates_for_remove(
+        entered_dates: str,
+        session: AsyncSession
+) -> tuple[int | None, datetime | None, datetime | None, str]:
+    sale_id, error = None, ""
+    start_date, end_date = parse_dates(entered_dates)
+    if not all((start_date, end_date)):
+        error = (f'Формат введенных дат некорректен.\n{TEXT_ENTER_DEACTIVATE_SALE}')
+    else:
+        sale_id = await sales_dates_exists(start_date, end_date, session)
+        if not sale_id:
+            error = (f'Активной акции с указанными датами не найдено.\n{TEXT_ENTER_DEACTIVATE_SALE}')
+
+    return sale_id, start_date, end_date, error
+
+
+async def get_active_sales_text(session: AsyncSession) -> str:
+    """
+        Get text with active sales info
+    """
+    active_sales = await sales_crud.get_active_sales(session=session)
+    if not active_sales:
+        return 'Нет запланированных периодов продаж'
+    text = 'Запланированные периоды продаж:\n'
+    for idx, sale in enumerate(active_sales):
+        text += f'{idx + 1}. {sale.sales_start:%d.%m.%Y} - {sale.sales_finish:%d.%m.%Y}\n'
+    return text
+
+
+async def process_action_in_owned_bots(
+        owned_bot: OwnedBot,
+        action: AdminsCDAction,
+        user_id: int
+):
+    if action == AdminsCDAction.BAN_USER_IN_OWNED_BOT:
+        url_ = owned_bot.get_ban_url(user_id=user_id)
+        action_as_text_error = "блокировки"
+        action_as_text_success = "заблокирован"
+    else:
+        url_ = owned_bot.get_unban_url(user_id=user_id)
+        action_as_text_error = "разблокирования"
+        action_as_text_success = "разблокирован"
+    async with aiohttp.ClientSession() as aio_session:
+        response = await aio_session.get(url_, headers=HEADERS)
+        status_code = json.loads(await response.text()).get("code", "1")
+        if status_code != 0:
+            return (
+                f"Произошла ошибка во время {action_as_text_error} "
+                f"пользователя в боте\n: {owned_bot.rus_name}\n\n"
+            )
+        else:
+            return (
+                f"Пользователь успешно {action_as_text_success} "
+                f"в боте: \n{owned_bot.rus_name}\n\n"
+            )

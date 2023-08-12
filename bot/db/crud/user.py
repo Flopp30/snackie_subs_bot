@@ -105,10 +105,10 @@ class CRUDUser(CRUDBase):
         Returns a list of users with a subscription expiring this month
         """
         current_month = datetime.now().month
-        query = (select(self.model)
-                 .where(
-            (self.model.is_active) & (extract('month', self.model.unsubscribe_date) == current_month))
-                 .options(selectinload(self.model.subscription)))
+        query = (select(self.model).where(
+            (self.model.is_active)
+            & (extract('month', self.model.unsubscribe_date) == current_month)).options(
+            selectinload(self.model.subscription)))
         db_obj = await session.execute(query)
         return db_obj.scalars().all()
 
