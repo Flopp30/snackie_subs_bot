@@ -13,6 +13,14 @@ builder.button(
     text="Отправить сообщение пользователям", callback_data=AdminsCallBack(action=AdminsCDAction.SEND_MESSAGE)
 )
 builder.button(
+    text="Забанить пользователя в других ботах",
+    callback_data=AdminsCallBack(action=AdminsCDAction.BAN_USER_IN_OWNED_BOT)
+)
+builder.button(
+    text="Разбанить пользователя в других ботах",
+    callback_data=AdminsCallBack(action=AdminsCDAction.UNBAN_USER_IN_OWNED_BOT)
+)
+builder.button(
     text="Завершить текущие продажи", callback_data=AdminsCallBack(action=AdminsCDAction.STOP_SALE)
 )
 builder.button(

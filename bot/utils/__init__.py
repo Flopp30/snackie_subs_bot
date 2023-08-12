@@ -6,7 +6,7 @@ __all__ = [
     "CustomCounter",
     "bot_send_message",
     "check_dates",
-
+    "process_action_in_owned_bots",
 ]
 
 from bot.utils.utils import (
@@ -17,5 +17,5 @@ from bot.utils.utils import (
     CustomCounter,
     bot_send_message,
     check_dates,
-
+    process_action_in_owned_bots,
 )
