@@ -7,10 +7,12 @@ __all__ = [
     "SEND_MESSAGE_ACCEPT_BOARD",
     "get_payment_board",
     "CONFIRMATION_BOARD",
-    "ADMIN_BOARD"
+    "ADMIN_BOARD",
+    "BOT_SELECTION_BOARD",
 ]
 
 from bot.structure.keyboards.after_payment_redirect_board import AFTER_PAYMENT_REDIRECT_BOARD
+from bot.structure.keyboards.bot_selection_keyboard import BOT_SELECTION_BOARD
 from bot.structure.keyboards.get_payment_board import get_payment_board
 from bot.structure.keyboards.payment_type_board import get_payment_types_board
 from bot.structure.keyboards.send_message_accept_board import SEND_MESSAGE_ACCEPT_BOARD

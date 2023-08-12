@@ -16,6 +16,17 @@ builder.button(
     text="Отменить запланированные продажи", callback_data=AdminsCallBack(action=AdminsCDAction.STOP_SALE)
 )
 builder.button(
+    text="Забанить пользователя в других ботах",
+    callback_data=AdminsCallBack(action=AdminsCDAction.BAN_USER_IN_OWNED_BOT)
+)
+builder.button(
+    text="Разбанить пользователя в других ботах",
+    callback_data=AdminsCallBack(action=AdminsCDAction.UNBAN_USER_IN_OWNED_BOT)
+)
+builder.button(
+    text="Завершить текущие продажи", callback_data=AdminsCallBack(action=AdminsCDAction.STOP_SALE)
+)
+builder.button(
     text="Ввести даты новых продаж", callback_data=AdminsCallBack(action=AdminsCDAction.CREATE_NEW_SALE)
 )
 builder.button(

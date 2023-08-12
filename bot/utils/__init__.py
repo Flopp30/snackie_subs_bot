@@ -8,6 +8,7 @@ __all__ = [
     "check_dates",
     "check_dates_for_remove",
     "get_active_sales_text",
+    "process_action_in_owned_bots",
 ]
 
 from bot.utils.utils import (
@@ -20,4 +21,5 @@ from bot.utils.utils import (
     check_dates,
     check_dates_for_remove,
     get_active_sales_text,
+    process_action_in_owned_bots,
 )
