@@ -380,7 +380,7 @@ async def create_sale_confirmation(
                 f'Период продаж {sales_start:%d.%m.%Y} - {sales_finish:%d.%m.%Y} сохранен'
             )
     else:
-        await callback_query.message.answer('Операция отменена')
+        await callback_query.message.answer('Действие отменено.')
     await state.clear()
     await callback_query.message.answer(
         text="Административная часть",
@@ -398,7 +398,7 @@ async def remove_sale_enter_dates(
     """
     if message.text.lower() == "отмена":
         await state.clear()
-        await message.answer('Операция отменена')
+        await message.answer('Действие отменено.')
         await message.answer(
             text="Административная часть",
             reply_markup=ADMIN_BOARD,

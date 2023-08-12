@@ -285,7 +285,7 @@ async def get_active_sales_text(session: AsyncSession) -> str:
     active_sales = await sales_crud.get_active_sales(session=session)
     if not active_sales:
         return 'Нет запланированных периодов продаж'
-    text = 'Запланированные периоды продаж:\n'
+    text = 'Активные периоды продаж:\n'
     for idx, sale in enumerate(active_sales):
         text += f'{idx + 1}. {sale.sales_start:%d.%m.%Y} - {sale.sales_finish:%d.%m.%Y}\n'
     return text
