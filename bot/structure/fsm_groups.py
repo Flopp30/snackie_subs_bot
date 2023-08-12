@@ -26,4 +26,5 @@ class RemoveSaleState(StatesGroup):
     """
         States for new sale creating
     """
+    waiting_for_dates = State()
     waiting_for_confirm = State()

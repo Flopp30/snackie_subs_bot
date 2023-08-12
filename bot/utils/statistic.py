@@ -4,7 +4,7 @@ import tempfile
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.db.crud import user_crud, payment_crud
+from bot.db.crud import user_crud, payment_crud, sales_crud
 from bot.utils import CustomCounter
 
 
@@ -132,3 +132,34 @@ async def get_payment_stat(session: AsyncSession) -> (str, bytes):
         file_content = csvfile.read()
 
     return report_message, file_content
+
+
+async def get_sales_dates_info(session: AsyncSession) -> (str, bytes):
+    """
+        Prepair sales periods info
+    """
+    sales_dates = await sales_crud.get_multi(session=session)
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as csvfile:
+        csv_filename = csvfile.name
+
+        writer = csv.writer(csvfile)
+        writer.writerow(
+            [
+                "#",
+                "Start date",
+                "Finish date",
+                'Status',
+            ])
+        for idx, sale in enumerate(sorted(sales_dates, key=lambda sale: sale.sales_start)):
+            writer.writerow(
+                [
+                    idx + 1,
+                    sale.sales_start.strftime('%d.%m.%Y'),
+                    sale.sales_finish.strftime('%d.%m.%Y'),
+                    ['not active', 'active'][sale.is_active],
+                ])
+
+    with open(csv_filename, 'rb') as csvfile:
+        file_content = csvfile.read()
+
+    return file_content

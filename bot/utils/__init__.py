@@ -6,7 +6,8 @@ __all__ = [
     "CustomCounter",
     "bot_send_message",
     "check_dates",
-
+    "check_dates_for_remove",
+    "get_active_sales_text",
 ]
 
 from bot.utils.utils import (
@@ -17,5 +18,6 @@ from bot.utils.utils import (
     CustomCounter,
     bot_send_message,
     check_dates,
-
+    check_dates_for_remove,
+    get_active_sales_text,
 )

@@ -13,9 +13,10 @@ from bot.handlers import start
 from bot.structure import AdminsCDAction, AdminsCallBack, SendMessageState, UserGroupsCallBack, UserGroupsCD, \
     SendMessageCallBack, ConfirmationCallBack, SendMessageActionsCD, CreateSaleState, RemoveSaleState, GROUP_NAMES
 from bot.structure.keyboards import USER_GROUPS_BOARD, SEND_MESSAGE_ACCEPT_BOARD, CONFIRMATION_BOARD, ADMIN_BOARD
-from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES
-from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates
-from bot.utils.statistic import get_user_stat, get_payment_stat
+from bot.text_for_messages import TEXT_ENTER_NEW_SALES_DATES, TEXT_ENTER_DEACTIVATE_SALE
+from bot.utils import get_users_by_group, bot_send_message, CustomCounter, check_dates, get_active_sales_text, \
+    check_dates_for_remove
+from bot.utils.statistic import get_user_stat, get_payment_stat, get_sales_dates_info
 from bot.db.crud import sales_crud
 
 
@@ -52,28 +53,30 @@ async def admin_start(
             await callback_query.message.answer('Выбери группу', reply_markup=USER_GROUPS_BOARD)
 
         elif callback_data.action == AdminsCDAction.STOP_SALE:
-            active_sales = await sales_crud.get_active_sales(session=session)
-            current_sale = None
-            if active_sales:
-                for sale in active_sales:
-                    if sale.sales_start <= datetime.now() <= sale.sales_finish:
-                        current_sale = sale
-                        break
-                if current_sale:
-                    await state.set_state(RemoveSaleState.waiting_for_confirm)
-                    await state.update_data(sale_id=current_sale.id)
-                    await callback_query.message.answer(
-                        f'Ты действительно хочешь остановить продажи в период '
-                        f'{current_sale.sales_start:%d-%m-%Y} - {current_sale.sales_finish:%d-%m-%Y}?',
-                        reply_markup=CONFIRMATION_BOARD
-                    )
-
-            if not active_sales or not current_sale:
-                await callback_query.message.answer('Сейчас нет продаж')
+            active_sales_text = await get_active_sales_text(session)
+            if active_sales_text == 'Нет запланированных периодов продаж':
+                await callback_query.message.answer(active_sales_text)
+            else:
+                await state.set_state(RemoveSaleState.waiting_for_dates)
+                await callback_query.message.answer(
+                    f'{active_sales_text}\n'
+                    f'{TEXT_ENTER_DEACTIVATE_SALE}'
+                )
 
         elif callback_data.action == AdminsCDAction.CREATE_NEW_SALE:
             await state.set_state(CreateSaleState.waiting_for_dates)
             await callback_query.message.answer(TEXT_ENTER_NEW_SALES_DATES)
+
+        elif callback_data.action == AdminsCDAction.GET_SALE_DATES_LIST:
+            text = await get_active_sales_text(session)
+            csv_file = await get_sales_dates_info(session)
+            await callback_query.message.answer_document(
+                BufferedInputFile(
+                    csv_file,
+                    filename="sales_dates.csv"
+                )
+            )
+            await callback_query.message.answer(text)
 
 
 async def send_message_start(
@@ -259,7 +262,42 @@ async def create_sale_confirmation(
     )
 
 
-async def remove_active_sale_confirmation(
+async def remove_sale_enter_dates(
+        message: types.Message,
+        get_async_session: sessionmaker,
+        state: FSMContext,
+) -> None:
+    """
+    Enter new sales dates handler
+    """
+    if message.text.lower() == "отмена":
+        await state.clear()
+        await message.answer('Операция отменена')
+        await message.answer(
+        text="Административная часть",
+        reply_markup=ADMIN_BOARD,
+    )
+    else:
+        async with get_async_session() as session:
+            sale_id, start_date, end_date, error = await check_dates_for_remove(
+                message.text, session
+            )
+        if error:
+            await message.answer(error)
+        else:
+            await state.update_data(
+                start_date=str(start_date),
+                end_date=str(end_date),
+                sale_id=sale_id
+            )
+            await state.set_state(RemoveSaleState.waiting_for_confirm)
+            await message.answer(
+                f'Подтверди отмену акции в период: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y}',
+                reply_markup=CONFIRMATION_BOARD
+            )
+
+
+async def remove_sale_confirmation(
     callback_query: types.CallbackQuery,
     callback_data: ConfirmationCallBack,
     get_async_session: sessionmaker,

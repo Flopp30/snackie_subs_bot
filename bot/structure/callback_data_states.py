@@ -27,6 +27,7 @@ class AdminsCDAction(enum.IntEnum):
     SEND_MESSAGE = 2
     STOP_SALE = 3
     CREATE_NEW_SALE = 4
+    GET_SALE_DATES_LIST = 5
 
 
 class AdminsCallBack(CallbackData, prefix="statistic"):
