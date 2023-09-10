@@ -43,7 +43,7 @@ async def start(
 
         else:
             is_a_sale_now = await sales_crud.is_a_sale_now(session=session)
-            if is_a_sale_now or bool(user.first_sub_date):
+            if bool(user.first_sub_date) or is_a_sale_now:
                 await message.answer(
                     TEXT_GREETING,
                     parse_mode=ParseMode.HTML,
