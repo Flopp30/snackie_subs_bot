@@ -62,7 +62,24 @@ TOTAL_AWAIT_PAYMENT_SEC = 900
 INTERVAL_FOR_CHECKING_PAYMENT_SEC = 5
 
 
-# Owned bot administration
+# Owned bot/chat administration
+
+TG_KICK_URL = f'https://api.telegram.org/bot{TG_BOT_KEY}/kickChatMember'
+
+
+class OwnedChat:
+    def __init__(self, chat_id, name):
+        self.chat_id = chat_id
+        self.name = name
+
+
+exercise_chat = OwnedChat(chat_id=-1001857172579, name='Зарядки')
+antidiet_chat = OwnedChat(chat_id=-1001984845449, name='Антидиет фитнес клаб')
+september = OwnedChat(chat_id=-1001943734490, name='Тренировки сентябрь')
+
+OWNED_CHATS = [exercise_chat, antidiet_chat, september]
+
+
 
 
 class OwnedBot:

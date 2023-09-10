@@ -90,9 +90,6 @@ def register_user_commands(router: Router) -> None:
     router.callback_query.register(subscription_start, StartStates.filter())
     router.callback_query.register(send_subscribe_invoice, PaymentTypeStates.filter())
 
-    # UNKNOWN COMMAND
-    router.message.register(handle_unknown_message)
-
 
 async def handle_unknown_message(message: types.Message):
     await message.answer(TEXT_UNKNOWN_MESSAGE)

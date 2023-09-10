@@ -7,6 +7,7 @@ from aiogram import types
 from apscheduler.triggers.date import DateTrigger
 from yookassa import Payment as YooPayment
 
+from bot import settings
 from bot.db import (
     User,
 )
@@ -44,6 +45,25 @@ async def ban_user_in_owned_bots(user: User, bot):
                 logger.error(f"Something went wrong. Can't banned user {user} in bot {owned_bot.name}")
             else:
                 logger.info(f"User {user} was banned in bot {owned_bot.name}")
+
+    tasks = []
+    async with aiohttp.ClientSession() as aio_session:
+        for chat in settings.OWNED_CHATS:
+            task = asyncio.create_task(kick_user_from_chat(aio_session, user, chat.chat_id, chat.name))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+
+
+async def kick_user_from_chat(aio_session, user, group_id, group_name):
+    response = await aio_session.post(
+        f'https://api.telegram.org/bot{settings.TG_BOT_KEY}/kickChatMember',
+        data={
+            "chat_id": group_id,
+            "user_id": user.id,
+        }
+    )
+    if str(response.status) == '200':
+        logger.error(f"User {user} was kicked from chat {group_name}")
 
 
 async def unban_user_in_owned_bots(message: types.Message, user_id: int, bot):
