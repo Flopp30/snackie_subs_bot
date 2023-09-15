@@ -162,7 +162,13 @@ async def auto_payment_process(
                     user=user,
                     session=session,
                 )
-
+                await payment_crud.update(  # update payment status
+                    db_payment,
+                    {
+                        "status": checked_payment.get('status')
+                    },
+                    session=session,
+                )
             else:  # if payment status not succeeded
                 await bot.send_message(
                     user.id,
@@ -175,14 +181,14 @@ async def auto_payment_process(
                     db_obj=user,
                     session=session
                 )
-                await ban_user_in_owned_bots(user=user, bot=bot)
-            await payment_crud.update(  # update payment status
-                db_payment,
-                {
-                    "status": checked_payment.get('status')
-                },
-                session=session,
-            )
+                await ban_user_in_owned_bots(user_id=user.id, bot=bot)
+                await payment_crud.update(  # update payment status
+                    db_payment,
+                    {
+                        "status": "canceled"
+                    },
+                    session=session,
+                )
         else:
             if user.subscription.is_trial:  # if user's sub is trial - we don't charge money automatically,
                 # but give the opportunity to renew subscription, if necessary
