@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode
 from sqlalchemy.orm import sessionmaker
 
 from bot.db.crud import user_crud, sales_crud
-from bot.settings import ADMIN_TG_ID, SECOND_ADMIN_TG
+from bot.settings import ADMIN_TG_ID, SECOND_ADMIN_TG, greetings_photo
 from bot.structure.keyboards import START_BOARD, AFTER_PAYMENT_REDIRECT_BOARD
 from bot.structure.keyboards.admin_board import ADMIN_BOARD
 from bot.text_for_messages import TEXT_GREETING, TEXT_MAIN_FOR_IS_ACTIVE_USER, TEXT_NO_SALE
@@ -23,6 +23,12 @@ async def start(
     """
     if user_id is None:  # using for redirect to start from other handlers
         user_id = message.from_user.id
+    await message.answer_photo(
+        photo=greetings_photo,
+        caption=TEXT_GREETING,
+        parse_mode=ParseMode.HTML,
+        reply_markup=START_BOARD,
+    )
 
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=user_id, session=session)

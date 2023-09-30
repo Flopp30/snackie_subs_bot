@@ -7,6 +7,7 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from aiogram import types
 from dotenv import load_dotenv
 from sqlalchemy.engine.url import URL
 
@@ -22,6 +23,9 @@ logger.addHandler(file_handler)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+
+greetings_photo = types.FSInputFile('bot/greetings.jpeg')
+
 
 # Dirs
 BASE_DIR = Path(__file__).parent.parent
