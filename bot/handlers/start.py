@@ -23,12 +23,6 @@ async def start(
     """
     if user_id is None:  # using for redirect to start from other handlers
         user_id = message.from_user.id
-    await message.answer_photo(
-        photo=greetings_photo,
-        caption=TEXT_GREETING,
-        parse_mode=ParseMode.HTML,
-        reply_markup=START_BOARD,
-    )
 
     async with get_async_session() as session:
         user = await user_crud.get_by_id(user_pk=user_id, session=session)
@@ -50,8 +44,9 @@ async def start(
         else:
             is_a_sale_now = await sales_crud.is_a_sale_now(session=session)
             if bool(user.first_sub_date) or is_a_sale_now:
-                await message.answer(
-                    TEXT_GREETING,
+                await message.answer_photo(
+                    photo=greetings_photo,
+                    caption=TEXT_GREETING,
                     parse_mode=ParseMode.HTML,
                     reply_markup=START_BOARD,
                 )
