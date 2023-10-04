@@ -88,7 +88,24 @@ async def unban_user_in_owned_bots(message: types.Message, user_id: int, bot):
                 logger.error(f"Something went wrong. Can't banned user {user_id} in bot {owned_bot.name}")
             else:
                 logger.info(f"User {user_id} was unbanned in bot {owned_bot.name}")
-    await asyncio.sleep(0.5)
+    tasks = []
+    async with aiohttp.ClientSession() as aio_session:
+        for chat in settings.OWNED_CHATS:
+            task = asyncio.create_task(unban_user_from_chat(aio_session, user_id, chat.chat_id, chat.name))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+
+
+async def unban_user_from_chat(aio_session, user_id, group_id, group_name):
+    response = await aio_session.post(
+        f'https://api.telegram.org/bot{settings.TG_BOT_KEY}/unbanChatMember',
+        data={
+            "chat_id": group_id,
+            "user_id": user_id,
+        }
+    )
+    if str(response.status) == '200':
+        logger.info(f"User {user_id} was unbanned from chat {group_name}")
 
 
 async def send_confirm_message(sub_period, checked_payment, message):

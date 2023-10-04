@@ -220,7 +220,7 @@ async def auto_payment_process(
                 db_obj=user,
                 session=session
             )
-            await ban_user_in_owned_bots(user=user, bot=bot)
+            await ban_user_in_owned_bots(user_id=user.id, bot=bot)
 
 
 async def delete_message_with_payment_board_after_24_hours(
